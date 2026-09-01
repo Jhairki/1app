@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="font-size:18px;margin:8px 0 16px">Glosario</h2>
+
+<div class="stats">
+  <div class="stat"><div class="n">{{ glossary|length }}</div><div class="l">terminos</div></div>
+  <div class="stat"><div class="n">{{ glossary.char_rules|length }}</div><div class="l">reglas de caracter</div></div>
+  <div class="stat {% if counts.error %}error{% else %}ok{% endif %}">
+    <div class="n">{{ counts.error }}</div><div class="l">errores</div>
+  </div>
+  <div class="stat warning"><div class="n">{{ counts.warning }}</div><div class="l">advertencias</div></div>
+  <div class="stat"><div class="n">{{ glossary.pending|length }}</div><div class="l">pendientes</div></div>
+</div>
+
+{% if counts.error %}
+  <div class="banner error">
+    <strong>El glosario no se puede usar.</strong>
+    Corrige los errores en <span class="mono">data/glossary.csv</span> y
+    <span class="mono">data/char_rules.csv</span>.
+  </div>
+{% endif %}
+
+{% if issues %}
+<div class="panel">
+  <h2>Validacion</h2>
+  {% for i in issues %}
+    <div class="finding {{ i.level.value }}">
+      <div class="head">
+        <span class="tag">{{ i.level.value }}</span>
+        <span class="where">{{ i.source }}{% if i.row %}:{{ i.row }}{% endif %} — {{ i.key }}</span>
+      </div>
+      <div class="msg">{{ i.message }}</div>
+    </div>
+  {% endfor %}
+</div>
+{% else %}
+  <div class="banner ok"><strong>El glosario esta limpio.</strong></div>
+{% endif %}
+
+<div class="panel">
+  <h2>Terminos</h2>
+  <div class="scroll">
+    <table>
+      <tr>
+        <th>Ingles</th><th>Español (oficial)</th><th>Aceptadas</th>
+        <th>Policy</th><th>Contexto</th>
+      </tr>
+      {% for e in glossary.entries %}
+        <tr>
+          <td class="mono">{{ e.english }}</td>
+          <td class="mono">{{ e.spanish_canonical or '—' }}</td>
+          <td class="mono muted">{{ e.spanish_accepted|join(' | ') or '' }}</td>
+          <td class="mono muted">{{ e.policy.value }}</td>
+          <td class="muted">{{ e.context }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Reglas de caracter</h2>
+  <p class="hint" style="margin-top:-6px;margin-bottom:12px">
+    Las de tipo <span class="mono">html_entity</span> y <span class="mono">unit</span> quedan
+    aqui como referencia: las cubre otro check (deteccion generica de entidades, y comparacion
+    del valor contra la pagina inglesa).
+  </p>
+  <div class="scroll">
+    <table>
+      <tr><th>Patron</th><th>Correcto</th><th>Tipo</th><th>Auto-corregible</th><th>Nota</th></tr>
+      {% for r in glossary.char_rules %}
+        <tr>
+          <td class="mono">{{ r.pattern }}</td>
+          <td class="mono">{{ r.replacement or '—' }}</td>
+          <td class="mono muted">{{ r.rule_type }}</td>
+          <td class="muted">{{ 'si' if r.auto_fixable else 'no' }}</td>
+          <td class="muted">{{ r.notes }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+{% endblock %}

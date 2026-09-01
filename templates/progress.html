@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel">
+  <h2>Escaneando {{ job.base_url }}</h2>
+  <p id="detalle" class="muted">Buscando la navegacion de la portada...</p>
+  <div style="height:8px;background:var(--bg);border-radius:5px;overflow:hidden;border:1px solid var(--border)">
+    <div id="barra" style="height:100%;width:0;background:var(--accent);transition:width .3s"></div>
+  </div>
+  <p class="hint" style="margin-top:12px">
+    Se espera un segundo entre peticiones para no golpear el sitio.
+  </p>
+</div>
+
+<script>
+  const url = "{{ url_for('job_status', job_id=job_id) }}";
+  const barra = document.getElementById("barra");
+  const detalle = document.getElementById("detalle");
+
+  async function revisar() {
+    try {
+      const respuesta = await fetch(url);
+      const datos = await respuesta.json();
+
+      if (datos.state === "done" || datos.state === "failed") {
+        location.reload();
+        return;
+      }
+
+      if (datos.total > 0) {
+        barra.style.width = Math.round((datos.done / datos.total) * 100) + "%";
+        detalle.textContent = `Pagina ${datos.done + 1} de ${datos.total}` +
+          (datos.current ? ` — ${datos.current}` : "");
+      } else if (datos.current) {
+        detalle.textContent = `Revisando ${datos.current}`;
+      }
+    } catch (e) {
+      detalle.textContent = "Se perdio la conexion con el servidor.";
+      return;
+    }
+    setTimeout(revisar, 1000);
+  }
+
+  revisar();
+</script>
+
+{% endblock %}

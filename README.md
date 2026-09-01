@@ -1,93 +1,141 @@
-# Locale Link Verifier
+# QA de Localización — sitios de dealers EN → ES
 
-A Flask-based web interface for a LangChain workflow that verifies Spanish locale navigation labels on dealer websites.
+Verifica que la versión en español de un sitio de concesionario esté bien
+migrada, comparando cada página `?locale=es_US` contra su equivalente
+`?locale=en_US`.
 
-## Overview
+Todo es determinista: reglas, glosario y aritmética. No usa ningún modelo de
+lenguaje, así que el mismo sitio da siempre el mismo reporte.
 
-This project scrapes navigation links from a dealer website, generates Spanish locale URLs, detects broken Spanish labels in localized pages, compares them to English labels, and produces a report. It can use a Gemini/Google Generative AI model for smarter broken-label detection, with a heuristic fallback when no API key is available.
+## Instalación
 
-## Features
-
-- Scrapes navigation links from a base URL using `div.header-navigation` or `<nav>`.
-- Builds Spanish locale URLs by appending `?locale=es_US` to each path.
-- Detects broken Spanish link texts in the localized pages.
-- Compares broken Spanish labels to English page labels via `?locale=en_US`.
-- Looks up expected Spanish translations from `translations.csv`.
-- Renders a summary report in a browser using Flask.
-
-## Architecture
-
-- `app.py` - Flask application and web UI.
-- `workflow.py` - Orchestrates the scan pipeline.
-- `scraper.py` - Scrapes navigation links, builds locale URLs, fetches pages, and performs broken label detection and comparison.
-- `tools/scraper_tool.py` - LangChain tool for scraping navigation links.
-- `tools/locale_tool.py` - LangChain tool for generating Spanish locale URLs.
-- `tools/comparator_tool.py` - LangChain tool for comparing broken labels against English labels and translations.
-- `agents/broken_label_detector.py` - LLM-assisted agent for detecting broken Spanish page labels, with fallback heuristic logic.
-- `chains/report_chain.py` - Generates the final report payload.
-- `templates/report.html` - HTML template for the web report.
-- `translations.csv` - English-to-Spanish translation reference.
-
-## Requirements
-
-Install the Python dependencies:
+Requiere Python 3.11 o superior.
 
 ```bash
-python -m pip install -r requirements.txt
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-## Environment
+En Git Bash el activate es `source venv/Scripts/activate`.
 
-Create a `.env` file in the project root to configure optional secrets and settings:
+## Uso
 
-```env
-SECRET_KEY=your-secret-key
-GEMINI_API_KEY=your_gemini_api_key
-# or
-GOOGLE_API_KEY=your_google_api_key
-```
-
-- `SECRET_KEY` is used by Flask for session security.
-- `GEMINI_API_KEY` or `GOOGLE_API_KEY` enables the LLM-assisted broken label detector.
-
-If no API key is present, the project uses a heuristic detector based on text patterns.
-
-## Usage
-
-1. Install dependencies.
-2. Ensure `.env` is configured if you want LLM support.
-3. Run the app:
+### Interfaz web
 
 ```bash
 python app.py
 ```
 
-4. Open the browser at `http://localhost:5000`.
-5. Enter the dealer site base URL and submit the form.
+Abre http://localhost:5000. El escaneo corre en segundo plano con barra de
+progreso, y al terminar el reporte trae un enlace para descargar el CSV.
 
-## Behavior
+### Línea de comandos
 
-- The app scrapes navigation links from the given base URL.
-- It then creates Spanish locale page URLs and inspects each localized page for broken labels.
-- Broken labels are compared to the matching English page text and translation lookup entries.
-- The report displays:
-  - total navigation paths
-  - affected pages
-  - broken label count
-  - broken text, English label, and expected Spanish translation
+```bash
+python scan.py https://midealer.com
+```
 
-## Notes
+| Opción | Para qué |
+|---|---|
+| `--max-pages 5` | Limitar cuántas páginas escanear |
+| `--paths /servicio/ /ofertas/` | Revisar paths específicos en vez de la navegación |
+| `--csv reporte.csv` | Exportar a CSV para abrir en Excel |
+| `--json reporte.json` | Exportar a JSON |
+| `--unknown` | Incluir los términos que no están en el glosario (mucho ruido) |
+| `-v` | Ver el progreso página por página |
 
-- Navigation scraping prefers `div.header-navigation`, then falls back to `<nav>`.
-- Relative links are normalized and external domains are ignored.
-- Translation lookup uses `translations.csv`; missing file is handled gracefully.
+Sale con código 1 si hay errores, para encadenarlo en CI.
 
-## Troubleshooting
+**En Git Bash**, si pasás `--paths /` solo, antepone `MSYS_NO_PATHCONV=1` — si no,
+Git Bash convierte la barra en una ruta de Windows.
 
-- If no navigation links are found, verify the URL and page structure.
-- If you see `ValueError` for missing API keys, add `GEMINI_API_KEY` or `GOOGLE_API_KEY` to `.env`.
-- The current locale switching approach is query-parameter based (`?locale=es_US` / `?locale=en_US`).
+### Validar el glosario
 
-## License
+```bash
+python validate_glossary.py
+```
 
-This repository does not include a license file. Add one if you intend to share or publish the code.
+Revisa `data/` antes de escanear: claves duplicadas, traducciones faltantes,
+`policy` inválidas, mojibake dentro del propio glosario. Sale con código 1 si
+hay errores. El escaneo lo corre solo y se niega a arrancar si el glosario
+está mal.
+
+## Qué verifica
+
+| Check | Qué detecta |
+|---|---|
+| Labels rotos | Claves internas del CMS visibles (`SITEBUILDER_*`), placeholders sin resolver, `undefined`/`null` |
+| Traducción | El término español contra el glosario oficial |
+| Contenido migrado | Texto que sigue en inglés, y contenido que existe en EN pero no en ES |
+| Mayúsculas | Que el patrón de capitalización siga al de la página inglesa |
+| Caracteres | Mojibake, entidades HTML visibles, acentos perdidos |
+| Unidades | Que millas y kilómetros no cambien de unidad sin convertir el valor |
+| Duplicados | El mismo término dos veces en la página, una traducida y otra no |
+
+Cuando una clave del CMS aparece **solo en español**, el reporte dice qué texto
+tiene la página inglesa en ese mismo elemento. Si aparece en los dos idiomas,
+baja a advertencia: el label nunca se llenó en el CMS y no es un bug de
+traducción.
+
+## Los datos
+
+Tres archivos en `data/`, editables en Excel:
+
+- **`glossary.csv`** — los términos. Columnas: `english`,
+  `spanish_canonical` (la oficial), `spanish_accepted` (variantes válidas,
+  separadas por `|`), `policy`, `context`, `notes`.
+
+  `policy` puede ser `translate`, `do_not_translate` (marcas como CarFinder),
+  `pattern` (con placeholders `{n}`, `{year}`) o `pending` (sin traducción
+  todavía).
+
+- **`char_rules.csv`** — mojibake, acentos perdidos, typos. Las filas de tipo
+  `html_entity` y `unit` quedan como referencia: las cubre otro check.
+
+- **`style_rules.csv`** — reglas de estilo, como no usar artículos antes de
+  modelos de vehículos.
+
+Se leen con `utf-8-sig` porque Excel escribe BOM.
+
+## Estructura
+
+```
+app.py                 interfaz web
+scan.py                CLI
+validate_glossary.py   validador del glosario
+qa/
+  glossary.py          carga y valida data/
+  normalize.py         normalización de texto (conserva acentos a propósito)
+  casing.py            clasificación de mayúsculas
+  fetch.py             descarga con locale
+  extract.py           extracción y emparejamiento ES↔EN
+  engine.py            orquesta los checks
+  findings.py          modelo de hallazgos
+  export.py            CSV
+  checks/              los seis checks
+tests/
+data/
+```
+
+## Notas
+
+- Se espera un segundo entre peticiones para no golpear el sitio.
+- El emparejamiento ES↔EN usa cuatro pasadas: href+query exacto, solo el
+  query, orden cuando las cantidades coinciden, y texto más parecido. Los
+  sitios reales usan rutas distintas por idioma (`/new/` vs `/new-inventory/`),
+  y a veces meten la traducción dentro de la URL (`/SUV.htm` vs `/VUD.htm`).
+- Los términos que no están en el glosario se ocultan salvo `--unknown`: en una
+  página real son el 76% del reporte y casi todos son nombres de modelo,
+  direcciones y copy de marketing.
+
+## Código heredado
+
+`scraper.py`, `workflow.py`, `agents/`, `chains/`, `tools/` y
+`translations.csv` son de la versión anterior. Ya están reemplazados y nada del
+código actual los importa. Necesitan `langchain` y `langchain-google-genai`,
+que no están en `requirements.txt`.
+
+`qa/llm.py` y `qa/advisor.py` son una capa opcional de sugerencias con un
+modelo local, construida y luego desconectada. No los importa nadie salvo su
+propio test.

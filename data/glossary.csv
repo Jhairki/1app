@@ -1,0 +1,72 @@
+english,spanish_canonical,spanish_accepted,policy,context,notes
+All Inventory,Todos los Vehículos,,translate,nav,
+Alloy Wheels,Aros de Aleación,,translate,,
+Ask,Preguntar,,translate,,
+Bargain Inventory,Vehículos Económicos,,translate,nav,
+Body Style,Estilo de Carrocería,,translate,filter,
+Car,Vehículo,,translate,,
+CarFinder,CarFinder,,do_not_translate,brand,nombre de producto
+Certified Vehicles,Vehículos Certificados,,translate,nav,
+Chevy Cares,Chevy se Preocupa,,translate,brand,programa de marca — se traduce
+Classifieds New Inventory,Vehículos Nuevos Clasificados,,translate,nav,
+Classifieds Used Inventory,Vehículos Usados Clasificados,,translate,nav,
+Collision Center,Centro de Reparación de Choques,,translate,nav,
+Customer Reviews,Opiniones de Clientes,,translate,,
+Dealer,Concesionario,,translate,,
+Detailing,Detailing,,do_not_translate,,se mantiene en inglés
+Directions,Ubicación,Indicaciones,translate,nav,Ubicación es la oficial; Indicaciones se acepta
+Down Payment,Pago Inicial,,translate,form,
+Drive Line,Línea de Transmisión,,translate,spec,fila separada de Driveline
+Driveline,Línea de Transmisión,,translate,spec,fila separada de Drive Line
+Exotic New Inventory,Vehículos Nuevos Exóticos,,translate,nav,
+Exotic Pre-owned Inventory,Vehículos Usados Exóticos,,translate,nav,
+Express,Exprés,,translate,,
+Finance Application,Solicitud de Financiamiento,,translate,nav,
+Finance Center,Centro de Financiamiento,,translate,nav,
+Finance Credit Application,Solicitud de Crédito Financiero,,translate,nav,
+Get ePrice,Obtener el Precio en Línea,,translate,cta,
+Hybrid,Híbrido,,translate,spec,
+KBB Instant Cash Offer,Oferta al Instante en Efectivo KBB,,translate,cta,KBB se mantiene como marca
+KBB Instant Trade In Cash Offer,Oferta en Efectivo de KBB Instant Trade In,,translate,cta,KBB Instant Trade In se mantiene como marca
+Learn More,Conozca Más,,translate,cta,
+Lease,Arrendamiento,,translate,,
+Lease Specials,Ofertas de Arrendamiento,,translate,nav,
+Lifetime,De por Vida,,translate,,
+Loan,Préstamo,,translate,,
+Middle Initial,Inicial del Segundo Nombre,,translate,form,
+Mileage,Millaje,,translate,spec,el glosario original traía la clave mal escrita (Milleage)
+New Inventory,Vehículos Nuevos,,translate,nav,
+New Lineup,Nueva Alineación,,translate,nav,
+Oil Change Service,Servicio de Cambio de Aceite,,translate,,
+Opt Out Form,Formulario de Exclusión,,translate,form,
+Owners,Propietarios,,translate,nav,
+Parts,Partes,,translate,nav,
+Parts Center,Departamento de Partes,,translate,nav,
+Payment Estimator,Calculadora de Pagos,,translate,cta,
+Pre-Owned Inventory,Vehículos Usados,,translate,nav,
+Rebate,Rebaja,,translate,,
+Recall,Recall,Llamado a Revisión,do_not_translate,,se mantiene en inglés
+Rent,Alquilar,,translate,,
+Research,Explorar,,translate,nav,
+Research Center,Centro de Exploración de Vehículos,,translate,nav,
+Schedule,Agendar,,translate,cta,
+Service,Mantenimiento,,translate,nav,
+Service & Parts,Mantenimiento y Partes,,translate,nav,
+Service Care,Servicio de Cuidado,,translate,,
+Specials,Ofertas,,translate,nav,
+Starting at,Desde,,translate,price,
+Tire,Neumático,,translate,,
+Trade-In,Intercambiar,,translate,nav,
+Trade-In Appraisal,Valore Su Vehículo,,translate,cta,misma traducción que Value Your Trade
+Trim,Equipamiento,,translate,spec,
+Truck,Camioneta,,translate,,
+Tune Up,Afinar,,translate,,
+Value Your Trade,Valore Su Vehículo,,translate,cta,misma traducción que Trade-In Appraisal
+Vehicle Showroom,Sala de Exposición de Vehículos,,translate,nav,
+Wholesale New Inventory,Vehículos Nuevos al Por Mayor,,translate,nav,
+Window Sticker,,,pending,,"SIN TRADUCCIÓN — el glosario original traía ""<<"""
+Wiper Blades,Limpiaparabrisas,,translate,,
+Zip Code,Código Postal,,translate,form,
+Contact Us,Contáctenos,Contáctanos,translate,nav,tuteo vs. usted según cliente
+View {n} Qualifying Vehicle(s),Ver {n} Vehículos que Califican,,pattern,,{n} = entero. Original usaba xx / XX
+{year} Vehicles Research Overview,Descripción General de Vehículos {year},,pattern,,{year} = año. Original usaba xxxx / xxxxx

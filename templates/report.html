@@ -1,309 +1,130 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Locale Link Verifier</title>
-  <style>
-    :root {
-      --bg: #f4f6f8;
-      --surface: #ffffff;
-      --text: #1a1a2e;
-      --muted: #5c6370;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --border: #e2e8f0;
-      --error-bg: #fef2f2;
-      --error-text: #b91c1c;
-      --warn-bg: #fffbeb;
-      --warn-text: #92400e;
-      --ok-bg: #ecfdf5;
-      --ok-text: #047857;
-    }
+{% extends "base.html" %}
+{% block content %}
 
-    * { box-sizing: border-box; }
+{% if error %}
+  <div class="banner error"><strong>El escaneo fallo.</strong> {{ error }}</div>
+  <p><a href="{{ url_for('index') }}">&larr; Intentar de nuevo</a></p>
+{% else %}
 
-    body {
-      margin: 0;
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-    }
+<p class="muted" style="font-size:13px">
+  <a href="{{ url_for('index') }}">&larr; Escanear otro sitio</a>
+</p>
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem 1.25rem 3rem;
-    }
+<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:8px 0 16px">
+  <h2 style="font-size:18px;margin:0">{{ result.base_url }}</h2>
+  <a href="{{ url_for('job_csv', job_id=job_id) }}" style="font-size:13px">
+    descargar CSV
+  </a>
+</div>
 
-    header { margin-bottom: 2rem; }
-
-    h1 {
-      margin: 0 0 0.5rem;
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      margin: 0;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 0.65rem 0.85rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 1rem;
-    }
-
-    input:focus {
-      outline: 2px solid rgba(37, 99, 235, 0.35);
-      border-color: var(--accent);
-    }
-
-    button {
-      margin-top: 1rem;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 0.65rem 1.25rem;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button:hover { background: var(--accent-hover); }
-
-    .alert {
-      padding: 0.85rem 1rem;
-      border-radius: 6px;
-      margin-bottom: 1.5rem;
-    }
-
-    .alert-error {
-      background: var(--error-bg);
-      color: var(--error-text);
-      border: 1px solid #fecaca;
-    }
-
-    .alert-ok {
-      background: var(--ok-bg);
-      color: var(--ok-text);
-      border: 1px solid #a7f3d0;
-    }
-
-    .alert-warn {
-      background: var(--warn-bg);
-      color: var(--warn-text);
-      border: 1px solid #fde68a;
-    }
-
-    h2 {
-      margin: 0 0 1rem;
-      font-size: 1.25rem;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 0.65rem 0.75rem;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-    }
-
-    th {
-      background: #f8fafc;
-      font-weight: 600;
-    }
-
-    tbody tr:last-child td { border-bottom: none; }
-
-    .mono {
-      font-family: Consolas, "Courier New", monospace;
-      word-break: break-all;
-    }
-
-    .stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .stat {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      min-width: 140px;
-    }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .stat-label {
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    .empty {
-      color: var(--muted);
-      font-style: italic;
-    }
-
-    .meta {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      background: var(--error-bg);
-      color: var(--error-text);
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Locale Link Verifier</h1>
-      <p class="subtitle">LangChain workflow for Spanish locale QA on dealer sites.</p>
-    </header>
-
-    <div class="card">
-      <form method="post" action="/">
-        <label for="base_url">Base URL</label>
-        <input
-          type="text"
-          id="base_url"
-          name="base_url"
-          placeholder="https://mojix.cms.dealer.com/"
-          value="{{ base_url }}"
-          required
-        >
-        <button type="submit">Run Scan</button>
-      </form>
-    </div>
-
-    {% if error %}
-    <div class="alert alert-error">{{ error }}</div>
-    {% endif %}
-
-    {% if base_url and not error %}
-    <div class="meta">Scanned: <strong>{{ base_url }}</strong></div>
-    {% endif %}
-
-    {% if summary %}
-    <div class="card">
-      <h2>Summary</h2>
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-value">{{ summary.total_paths }}</div>
-          <div class="stat-label">Navigation paths</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">{{ summary.affected_pages }}</div>
-          <div class="stat-label">Affected pages</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">{{ summary.broken_count }}</div>
-          <div class="stat-label">Broken labels</div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if paths %}
-    <div class="card">
-      <h2>Navigation Links Found ({{ paths|length }})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Relative Path</th>
-            <th>Spanish URL</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for path in paths %}
-          <tr>
-            <td>{{ loop.index }}</td>
-            <td class="mono">{{ path }}</td>
-            <td class="mono">{{ spanish_urls.get(path, '—') }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% elif base_url and not error %}
-    <div class="card">
-      <h2>Navigation Links Found</h2>
-      <p class="empty">No navigation links were found. Check the URL and that the page contains <code>div.header-navigation</code> or <code>&lt;nav&gt;</code>.</p>
-    </div>
-    {% endif %}
-
-    <div class="card">
-      <h2>Broken Label Report</h2>
-      {% if findings %}
-      <div class="alert alert-warn">
-        Found {{ findings|length }} broken label(s) across the scanned pages.
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Path</th>
-            <th>Broken Label (ES page)</th>
-            <th>English Label</th>
-            <th>Expected Spanish (CSV)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in findings %}
-          <tr>
-            <td class="mono">{{ item.path }}</td>
-            <td><span class="badge">Broken</span> <span class="mono">{{ item.broken_text }}</span></td>
-            <td class="mono">{{ item.english_text or '—' }}</td>
-            <td class="mono">{{ item.expected_spanish or '—' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% elif paths %}
-      <div class="alert alert-ok">No broken Spanish locale labels detected.</div>
-      {% else %}
-      <p class="empty">No pages were verified.</p>
-      {% endif %}
-    </div>
+<div class="stats">
+  <div class="stat {% if summary.errors %}error{% else %}ok{% endif %}">
+    <div class="n">{{ summary.errors }}</div><div class="l">errores</div>
   </div>
-</body>
-</html>
+  <div class="stat warning">
+    <div class="n">{{ summary.warnings }}</div><div class="l">advertencias</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.infos }}</div><div class="l">informativos</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.auto_fixable }}</div><div class="l">auto-corregibles</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.pages_scanned }}</div><div class="l">paginas</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.units_checked }}</div><div class="l">textos revisados</div>
+  </div>
+</div>
+
+{% if summary.pages_failed %}
+  <div class="banner warning">
+    <strong>{{ summary.pages_failed }} paginas no se pudieron traer.</strong>
+    Aparecen abajo con el detalle.
+  </div>
+{% endif %}
+
+{% if not summary.errors %}
+  <div class="banner ok"><strong>Sin errores.</strong> Nada bloquea la publicacion.</div>
+{% endif %}
+
+{% if summary.by_verdict %}
+<div class="panel">
+  <h2>Por tipo de hallazgo</h2>
+  <div class="scroll">
+    <table>
+      <tr><th>Tipo</th><th style="width:80px">Cantidad</th></tr>
+      {% for verdict, count in summary.by_verdict.items() %}
+        <tr>
+          <td>{{ labels.get(verdict, verdict) }} <span class="muted mono">{{ verdict }}</span></td>
+          <td class="mono">{{ count }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if por_path and result.pages|length > 1 %}
+<div class="panel">
+  <h2>Paginas con hallazgos</h2>
+  <div class="scroll">
+    <table>
+      <tr><th>Path</th><th style="width:70px">Errores</th><th style="width:90px">Advert.</th><th>Tipos</th></tr>
+      {% for r in por_path %}
+        <tr>
+          <td class="mono">{{ r.path }}</td>
+          {% if r.error %}
+            <td colspan="3" class="muted">no se pudo traer</td>
+          {% else %}
+            <td class="mono">{{ r.errores }}</td>
+            <td class="mono">{{ r.advertencias }}</td>
+            <td class="muted mono">
+              {% for tipo, n in r.tipos.items() %}{{ labels.get(tipo, tipo) }} ({{ n }}){% if not loop.last %} · {% endif %}{% endfor %}
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% for page in result.pages %}
+  {% if page.error %}
+    <div class="pagehead">{{ page.path }}</div>
+    <div class="banner error">{{ page.error }}</div>
+  {% elif page.findings %}
+    <div class="pagehead">
+      {{ page.path }}
+      <span class="muted">— {{ page.errors }} errores de {{ page.findings|length }} hallazgos</span>
+      <div class="urls muted">
+        <a href="{{ page.spanish_url }}" target="_blank" rel="noopener">pagina ES</a> ·
+        <a href="{{ page.english_url }}" target="_blank" rel="noopener">pagina EN</a>
+      </div>
+    </div>
+
+    {% for f in page.findings|sort(attribute='severity.value') %}
+      <div class="finding {{ f.severity.value }}">
+        <div class="head">
+          <span class="tag">{{ labels.get(f.verdict.value, f.verdict.value) }}</span>
+          {% if f.context %}<span class="where">{{ f.context[:70] }}</span>{% endif %}
+        </div>
+        <div class="msg">{{ f.message }}</div>
+        {% if f.found or f.expected %}
+        <div class="cmp">
+          {% if f.found %}<div class="found">encontrado: {{ f.found }}</div>{% endif %}
+          {% if f.expected %}<div class="want">esperado&nbsp;&nbsp;: {{ f.expected }}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% if f.auto_fixable %}
+          <span class="fix">auto-corregible &rarr; {{ f.fixed }}</span>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+
+{% endif %}
+{% endblock %}

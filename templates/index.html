@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if error %}
+  <div class="banner error"><strong>{{ error }}</strong></div>
+{% endif %}
+
+{% if glossary_counts.error %}
+  <div class="banner error">
+    <strong>El glosario tiene {{ glossary_counts.error }} errores.</strong>
+    El escaneo no va a correr hasta corregirlos.
+    <a href="{{ url_for('glossary_view') }}">Ver el detalle</a>.
+  </div>
+{% endif %}
+
+<div class="panel">
+  <h2>Escanear un sitio</h2>
+  <form method="post">
+    <div class="field">
+      <label for="base_url">URL del sitio</label>
+      <input type="text" id="base_url" name="base_url" placeholder="midealer.com" required
+             autocomplete="off" autofocus>
+      <div class="hint">
+        Se revisa cada path en <span class="mono">?locale=es_US</span> contra su
+        version <span class="mono">?locale=en_US</span>.
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="max_pages">Maximo de paginas</label>
+        <input type="number" id="max_pages" name="max_pages" value="10" min="0">
+        <div class="hint">0 = sin limite. Cada pagina son ~2 segundos.</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="paths">Paths especificos <span class="muted">(opcional)</span></label>
+      <textarea id="paths" name="paths" rows="4"
+                placeholder="/inventario-nuevo/&#10;/servicio/&#10;/ofertas/"></textarea>
+      <div class="hint">Uno por linea. Si lo dejas vacio se sacan de la navegacion de la portada.</div>
+    </div>
+
+    <button type="submit">Escanear</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Que se verifica</h2>
+  <div class="scroll">
+    <table>
+      <tr><th>Check</th><th>Que detecta</th></tr>
+      <tr><td>Labels rotos</td><td>Claves internas del CMS visibles en la pagina, placeholders sin resolver</td></tr>
+      <tr><td>Traduccion</td><td>El termino en español contra el glosario oficial</td></tr>
+      <tr><td>Contenido migrado</td><td>Texto que sigue en ingles, y contenido que existe en EN pero no en ES</td></tr>
+      <tr><td>Mayusculas</td><td>Que el patron de capitalizacion siga al de la pagina inglesa</td></tr>
+      <tr><td>Caracteres</td><td>Mojibake, entidades HTML visibles, acentos perdidos</td></tr>
+      <tr><td>Unidades</td><td>Que millas y kilometros no cambien de unidad sin convertir el valor</td></tr>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:14px">
+    Glosario cargado: <strong>{{ glossary|length }}</strong> terminos,
+    <strong>{{ glossary.char_rules|length }}</strong> reglas de caracter,
+    <strong>{{ glossary.pending|length }}</strong> pendientes de traduccion.
+  </p>
+</div>
+
+{% endblock %}

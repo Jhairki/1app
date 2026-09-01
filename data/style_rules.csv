@@ -1,0 +1,2 @@
+rule_id,description,severity,auto_fixable,notes
+no_article_before_model,No usar artículos (el/la) antes de modelos de vehículos específicos,error,no,"del glosario: ""el Silverado"" → ""Silverado"". Requiere lista de modelos del dealer"

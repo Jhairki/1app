@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}QA de Localizacion{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --border: #dfe3e8;
+      --text: #1c2024;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --error: #b42318;
+      --error-bg: #fef3f2;
+      --warning: #b54708;
+      --warning-bg: #fffaeb;
+      --info: #026aa2;
+      --info-bg: #f0f9ff;
+      --ok: #067647;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14171a; --panel: #1c2024; --border: #2f353b;
+        --text: #e6e8ea; --muted: #9aa3ad;
+        --error: #fda29b; --error-bg: #2b1614;
+        --warning: #fdb022; --warning-bg: #2b1f10;
+        --info: #7cd4fd; --info-bg: #10222b;
+        --ok: #75e0a7;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 64px; }
+    body { overflow-x: hidden; }
+    .finding { overflow-wrap: anywhere; min-width: 0; }
+    header.top {
+      border-bottom: 1px solid var(--border); background: var(--panel);
+    }
+    header.top .wrap { padding: 16px 20px; display: flex; align-items: baseline; gap: 20px; }
+    header.top h1 { font-size: 17px; margin: 0; font-weight: 650; }
+    header.top nav { margin-left: auto; display: flex; gap: 18px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .panel {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 18px;
+    }
+    h2 { font-size: 15px; margin: 0 0 14px; font-weight: 650; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .hint { font-size: 12.5px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+    input[type=text], input[type=number], textarea {
+      width: 100%; padding: 9px 11px; font: inherit; color: var(--text);
+      background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
+    }
+    textarea { font-family: var(--mono); font-size: 13px; resize: vertical; }
+    input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    .field { margin-bottom: 16px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .row > * { flex: 1 1 200px; }
+    button {
+      font: inherit; font-weight: 600; padding: 9px 20px; border: 0;
+      border-radius: 7px; background: var(--accent); color: #fff; cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+    .stat {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 9px; padding: 11px 16px; min-width: 108px;
+    }
+    .stat .n { font-size: 21px; font-weight: 680; font-variant-numeric: tabular-nums; }
+    .stat .l { font-size: 12px; color: var(--muted); }
+    .stat.error .n { color: var(--error); }
+    .stat.warning .n { color: var(--warning); }
+    .stat.ok .n { color: var(--ok); }
+    .finding {
+      border: 1px solid var(--border); border-left-width: 4px;
+      border-radius: 8px; padding: 13px 15px; margin-bottom: 10px;
+      background: var(--panel);
+    }
+    .finding.error { border-left-color: var(--error); background: var(--error-bg); }
+    .finding.warning { border-left-color: var(--warning); background: var(--warning-bg); }
+    .finding.info { border-left-color: var(--info); background: var(--info-bg); }
+    .finding .head {
+      display: flex; gap: 10px; align-items: center;
+      flex-wrap: wrap; margin-bottom: 7px;
+    }
+    .tag {
+      font-size: 11.5px; font-weight: 650; text-transform: uppercase;
+      letter-spacing: .03em; padding: 2px 8px; border-radius: 20px;
+      border: 1px solid currentColor;
+    }
+    .finding.error .tag { color: var(--error); }
+    .finding.warning .tag { color: var(--warning); }
+    .finding.info .tag { color: var(--info); }
+    .where {
+      font-size: 12.5px; color: var(--muted); font-family: var(--mono);
+      overflow-wrap: anywhere; min-width: 0;
+    }
+    .msg { margin: 4px 0; }
+    .cmp {
+      font-family: var(--mono); font-size: 13px; margin-top: 7px;
+      overflow-wrap: anywhere;
+    }
+    .cmp div { padding: 1px 0; }
+    .cmp .found { color: var(--error); }
+    .cmp .want { color: var(--ok); }
+    .fix {
+      display: inline-block; margin-top: 7px; font-size: 12.5px;
+      overflow-wrap: anywhere; max-width: 100%;
+      font-family: var(--mono); padding: 3px 9px; border-radius: 5px;
+      border: 1px dashed var(--ok); color: var(--ok);
+    }
+    .ctx {
+      font-family: var(--mono); font-size: 12px; color: var(--muted);
+      margin-top: 7px; word-break: break-word;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    td.mono, .mono { font-family: var(--mono); font-size: 12.5px; }
+    .scroll { overflow-x: auto; }
+    .banner {
+      border-radius: 9px; padding: 13px 16px; margin-bottom: 18px;
+      border: 1px solid currentColor;
+    }
+    .banner.error { color: var(--error); background: var(--error-bg); }
+    .banner.warning { color: var(--warning); background: var(--warning-bg); }
+    .banner.ok { color: var(--ok); }
+    .banner strong { color: var(--text); }
+    .muted { color: var(--muted); }
+    .pagehead { margin: 26px 0 12px; font-size: 14px; font-weight: 650; }
+    .pagehead .urls { font-weight: 400; font-size: 12.5px; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>QA de Localizacion</h1>
+      <span class="muted" style="font-size:13px">dealer sites EN &rarr; ES</span>
+      <nav>
+        <a href="{{ url_for('index') }}">Escanear</a>
+        <a href="{{ url_for('glossary_view') }}">Glosario</a>
+      </nav>
+    </div>
+  </header>
+  <div class="wrap">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
