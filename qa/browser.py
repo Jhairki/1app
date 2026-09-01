@@ -72,6 +72,12 @@ JS_INVENTARIO = """
       dataEl: el.getAttribute('data-el') || '',
       dataHref: el.getAttribute('data-href') || '',
       titulo: el.getAttribute('data-title') || el.getAttribute('title') || '',
+      trigger: (() => {
+        const $ = window.jQuery;
+        const d = $ ? $(el).data('bs.popover') || $(el).data('bs.tooltip') : null;
+        if (d && d.options && d.options.trigger) return d.options.trigger;
+        return el.getAttribute('data-trigger') || '';
+      })(),
       texto: (el.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 60)
     }));
 }
@@ -87,26 +93,33 @@ def _abiertos(page) -> int:
 
 
 def _cerrar_todo(page) -> None:
-    """Cierra todo lo abierto Y resetea el estado interno de los widgets.
+    """Cierra lo abierto usando la API de cada widget. NUNCA borra nodos.
 
-    Lo segundo es imprescindible. Los popovers de Bootstrap ALTERNAN en cada
-    clic: si se les borra el nodo del DOM sin avisarles, siguen creyendo que
-    estan mostrados y el clic siguiente los oculta en vez de abrirlos. Eso hacia
-    que un popover sano se reportara como roto.
+    Dos razones, las dos descubiertas rompiendo cosas:
+
+    1. jQuery UI MUEVE el div de contenido adentro del .ui-dialog al abrirlo.
+       Borrar ese wrapper se lleva puesto el contenido, y los popups que se
+       prueban despues quedan sin nada que mostrar. Asi es como diálogos sanos
+       se reportaban rotos, pero solo los ultimos de cada columna.
+
+    2. Los popovers de Bootstrap ALTERNAN en cada interaccion. Si se les quita
+       el nodo sin avisarles, siguen creyendo que estan mostrados y la
+       interaccion siguiente los oculta en vez de abrirlos.
     """
     page.evaluate(
-        """sel => {
+        """() => {
             const $ = window.jQuery;
-            if ($ && $.fn && $.fn.popover) {
-              try { $('[data-toggle="popover"], [data-toggle="tooltip"]').popover('hide'); } catch (e) {}
+            if (!$) return;
+            try { $('[data-toggle="popover"], [data-toggle="tooltip"]').popover('hide'); } catch (e) {}
+            try { $('[data-toggle="tooltip"]').tooltip('hide'); } catch (e) {}
+            if ($.fn.dialog) {
+              $('.ui-dialog-content').each(function () {
+                try { $(this).dialog('close'); } catch (e) {}
+              });
             }
-            document.querySelectorAll(sel).forEach(n => {
-              const c = n.querySelector('.ui-dialog-titlebar-close, .close, [data-dismiss], .mfp-close');
-              if (c) c.click(); else n.remove();
-            });
+            if ($.fn.modal) { try { $('.modal').modal('hide'); } catch (e) {} }
             document.querySelectorAll('.ui-widget-overlay, .modal-backdrop').forEach(n => n.remove());
-        }""",
-        SELECTORES_ABIERTO,
+        }"""
     )
     page.keyboard.press("Escape")
 
@@ -132,8 +145,13 @@ def _esperar_apertura(page, antes: int) -> bool:
     return _abiertos(page) > antes
 
 
-def _intentar(page, disparadores, indice: int):
-    """Un intento de abrir un popup. Devuelve (abrio, contenido, error)."""
+def _intentar(page, disparadores, indice: int, por_hover: bool):
+    """Un intento de abrir un popup. Devuelve (abrio, contenido, error).
+
+    La interaccion tiene que ser la correcta: los popovers de la primera
+    columna del sitio real estan configurados con trigger 'hover', no 'click'.
+    Probarlos con clic da un resultado que no representa lo que hace un usuario.
+    """
     try:
         _cerrar_todo(page)
         page.wait_for_timeout(200)
@@ -142,43 +160,66 @@ def _intentar(page, disparadores, indice: int):
         elemento = disparadores.nth(indice)
         elemento.scroll_into_view_if_needed(timeout=5_000)
         page.wait_for_timeout(150)
-        elemento.click(timeout=6_000, force=True)
+
+        if por_hover:
+            elemento.hover(timeout=6_000)
+        else:
+            elemento.click(timeout=6_000, force=True)
 
         if not _esperar_apertura(page, antes):
-            return False, "", ""
+            # Si el hover no alcanzo, se prueba el clic: algunos popovers
+            # aceptan las dos, y lo que importa es si el usuario puede abrirlo.
+            if por_hover:
+                elemento.click(timeout=6_000, force=True)
+                if not _esperar_apertura(page, antes):
+                    return False, "", ""
+            else:
+                return False, "", ""
 
         return True, page.evaluate(JS_CONTENIDO, SELECTORES_ABIERTO), ""
     except Exception as exc:
         return False, "", str(exc).split("\n")[0][:120]
 
 
-def probar_popups(page, url: str) -> list[dict]:
-    """Abre la pagina, hace clic real en cada popup y anota si abrio."""
+def _cargar(page, url: str) -> None:
+    """Carga la pagina y la deja asentada, lista para interactuar."""
     page.goto(url, wait_until="domcontentloaded", timeout=TIEMPO_CARGA)
     try:
         page.wait_for_load_state("networkidle", timeout=8_000)
     except Exception:
         pass  # los sitios de dealer nunca quedan del todo quietos
 
-    # Calentamiento. Sin esto el PRIMER popup de la lista sale inestable: en
-    # dos corridas seguidas del mismo sitio daba roto una vez y bien la otra.
-    # Un QA que reporta resultados flaky es peor que no tenerlo.
-    page.wait_for_timeout(2_500)
+    # Sin esta espera el primer popup sale inestable: los handlers todavia se
+    # estan enlazando cuando llega el primer clic.
+    page.wait_for_timeout(2_000)
     page.mouse.move(10, 10)
-    page.mouse.click(5, 5)
-    page.wait_for_timeout(500)
 
+
+def probar_popups(page, url: str) -> list[dict]:
+    """Prueba cada popup con la interaccion que le corresponde.
+
+    Recarga la pagina antes de CADA popup. Es lento, pero es la unica forma de
+    que el resultado sea el que ve un usuario que llega y hace un solo clic:
+    probandolos en secuencia sobre la misma pagina, las interacciones previas
+    contaminan a las siguientes y dialogos perfectamente sanos salian rotos.
+    Verificado a mano: con la pagina fresca, #content3 abre bien; probado en
+    tercer lugar sobre la misma pagina, no.
+    """
+    _cargar(page, url)
     inventario = page.evaluate(JS_INVENTARIO)
-    disparadores = page.locator(SELECTOR_DISPARADORES)
     resultados = []
 
     for i, info in enumerate(inventario):
+        por_hover = "hover" in (info.get("trigger") or "").lower()
+
         abrio, contenido, error, intento = False, "", "", 0
         for intento in range(1, REINTENTOS + 1):
-            abrio, contenido, error = _intentar(page, disparadores, i)
+            if i > 0 or intento > 1:
+                _cargar(page, url)
+            disparadores = page.locator(SELECTOR_DISPARADORES)
+            abrio, contenido, error = _intentar(page, disparadores, i, por_hover)
             if abrio:
                 break
-            page.wait_for_timeout(400)
 
         resultados.append({
             "clave": _identidad(info),
@@ -188,9 +229,9 @@ def probar_popups(page, url: str) -> list[dict]:
             "contenido": contenido,
             "error": error,
             "intentos": intento,
+            "interaccion": "hover" if por_hover else "clic",
         })
 
-    _cerrar_todo(page)
     return resultados
 
 
