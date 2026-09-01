@@ -43,6 +43,7 @@ python scan.py https://midealer.com
 | `--csv reporte.csv` | Exportar a CSV para abrir en Excel |
 | `--json reporte.json` | Exportar a JSON |
 | `--unknown` | Incluir los términos que no están en el glosario (mucho ruido) |
+| `--popups` | Verificar con un navegador real que los popups abren (lento) |
 | `-v` | Ver el progreso página por página |
 
 Sale con código 1 si hay errores, para encadenarlo en CI.
@@ -72,11 +73,30 @@ está mal.
 | Caracteres | Mojibake, entidades HTML visibles, acentos perdidos |
 | Unidades | Que millas y kilómetros no cambien de unidad sin convertir el valor |
 | Duplicados | El mismo término dos veces en la página, una traducida y otra no |
+| Popups | Que los popups del inglés existan en español, y con `--popups`, que abran |
 
 Cuando una clave del CMS aparece **solo en español**, el reporte dice qué texto
 tiene la página inglesa en ese mismo elemento. Si aparece en los dos idiomas,
 baja a advertencia: el label nunca se llenó en el CMS y no es un bug de
 traducción.
+
+## Popups
+
+Un popup es invisible para los demás checks: su texto vive en atributos
+(`data-title`, `data-content`) o en un div oculto, y su ausencia no deja
+ningún hueco visible en la página.
+
+Se detectan por `data-toggle="popover"` o por `class="dialog"` con `data-el`
+o `data-href`. Un `<a class="btn">` sin ningún atributo `data-*` **no** es un
+popup y no entra al reporte.
+
+El escaneo normal compara el inventario entre idiomas. Con `--popups` además
+se abre un navegador real y se hace clic en cada uno, porque los popovers de
+Bootstrap no responden a un clic programático. Ese modo distingue si el popup
+no abre solo en español (bug de localización) o tampoco en inglés (bug del
+sitio).
+
+Requiere `pip install playwright` y `playwright install chromium`.
 
 ## Los datos
 

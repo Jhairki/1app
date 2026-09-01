@@ -3,6 +3,11 @@ beautifulsoup4>=4.12.0
 requests>=2.31.0
 python-dotenv>=1.0.0
 
+# Solo para  scan.py --popups , que verifica con un navegador real que los
+# popups abren. El escaneo normal no lo necesita y funciona sin esto.
+# Despues de instalarlo hace falta:  playwright install chromium
+playwright>=1.40.0
+
 # Todo lo demas que usa el motor es libreria estandar de Python:
 # csv, re, difflib, unicodedata, html, urllib, dataclasses, threading.
 #

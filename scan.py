@@ -16,6 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from qa.browser import check_popups_live
 from qa.engine import scan_site
 from qa.export import by_path, write_csv
 from qa.findings import Severity
@@ -105,6 +106,8 @@ def main() -> int:
     parser.add_argument("--paths", nargs="*", help="Paths a revisar. Por defecto salen de la navegacion.")
     parser.add_argument("--max-pages", type=int, default=0, help="Limite de paginas a escanear")
     parser.add_argument("--json", dest="json_path", help="Guardar el reporte como JSON")
+    parser.add_argument("--popups", action="store_true",
+                        help="Verificar con un navegador real que los popups abren (lento)")
     parser.add_argument("--csv", dest="csv_path", help="Guardar el reporte como CSV (Excel)")
     parser.add_argument("--unknown", action="store_true",
                         help="Incluir los terminos que no estan en el glosario (mucho ruido)")
@@ -140,6 +143,17 @@ def main() -> int:
     if result.error:
         print(f"El escaneo fallo: {result.error}")
         return 1
+
+    if args.popups:
+        print()
+        print("Verificando popups con navegador real (esto tarda)...")
+        for page in result.pages:
+            if page.error:
+                continue
+            hallazgos = check_popups_live(page.spanish_url, page.english_url, page.path)
+            if hallazgos:
+                page.findings.extend(hallazgos)
+                print(f"  {page.path}: {len(hallazgos)} hallazgos de funcionalidad")
 
     print_report(result)
 
