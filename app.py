@@ -53,6 +53,8 @@ VERDICT_LABELS = {
     "duplicate_term": "Termino duplicado en la pagina",
     "missing": "Contenido faltante",
     "locale_not_applied": "El sitio ignoro el locale",
+    "popup_missing": "Popup que no se migro",
+    "popup_extra": "Popup solo en español",
     "unit_not_converted": "Unidad sin convertir",
     "unit_mislabeled": "Unidad mal etiquetada",
     "unit_unverifiable": "Unidad no verificable",

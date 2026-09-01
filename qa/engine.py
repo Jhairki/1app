@@ -24,9 +24,11 @@ from qa.checks.broken_keys import find_broken_keys, is_broken_key, keys_in
 from qa.checks.duplicates import find_duplicates
 from qa.checks.entities import find_html_entities
 from qa.checks.mojibake import find_char_issues
+from qa.checks.popups import check_popups
 from qa.checks.terms import TermChecker
 from qa.checks.units import check_units
-from qa.extract import extract_units, find_navigation_paths, pair_units, visible_text
+from qa.extract import (POPUP_KINDS, extract_units, find_navigation_paths,
+                        pair_units, visible_text)
 from qa.fetch import (
     ENGLISH,
     SPANISH,
@@ -195,6 +197,8 @@ def scan_page(base_url: str, path: str, glossary: Glossary, checker: TermChecker
         findings += check_units(spanish_text, english_text, path)
 
         english_units = extract_units(english_html, base_url)
+        findings += check_popups(spanish_units, english_units, path)
+
         pairs, orphans, missing = pair_units(spanish_units, english_units)
 
         for spanish_unit, english_unit in pairs:
@@ -233,8 +237,12 @@ def scan_page(base_url: str, path: str, glossary: Glossary, checker: TermChecker
                 finding.context = f"{unit.describe()} | {finding.context}".strip(" |")
                 findings.append(finding)
 
-        # Contenido que esta en ingles y no llego al español
+        # Contenido que esta en ingles y no llego al español.
+        # Los popups los reporta check_popups en un solo hallazgo con la causa:
+        # sin esto, una pagina sin popups migrados escupe uno por cada atributo.
         for unit in missing:
+            if unit.kind in POPUP_KINDS:
+                continue
             if not _es_contenido(unit.text):
                 continue
             findings.append(

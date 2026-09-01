@@ -37,7 +37,13 @@ TEXT_PAIR_RATIO = 0.85
 # hacen que cada item se compare contra el anterior del ingles.
 POSITIONAL_KINDS = {"heading", "button"}
 
+# Tipos que describen un popup, para el check de inventario
+POPUP_KINDS = {"popup_trigger", "popup_title", "popup_content"}
+
 HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"]
+
+# Valores de data-toggle que abren algo flotante
+POPUP_TOGGLES = {"popover", "tooltip", "modal"}
 
 
 @dataclass(frozen=True)
@@ -59,6 +65,10 @@ class TextUnit:
             return f"alt de {self.key}"
         if self.kind == "meta":
             return f"meta {self.key}"
+        if self.kind in POPUP_KINDS:
+            etiqueta = {"popup_trigger": "disparador", "popup_title": "titulo",
+                        "popup_content": "contenido"}[self.kind]
+            return f"popup {self.key} ({etiqueta})"
         return f"{self.kind} {self.key}"
 
 
@@ -96,6 +106,49 @@ def _link_key(base_url: str, href: str) -> str:
         if k != "locale"
     ])
     return f"{relative}?{query}" if query else relative
+
+
+def popup_identity(el, base_url: str, index: int) -> str:
+    """Clave estable de un popup.
+
+    Los dialogos tienen identidad real: el data-el al que apuntan o el data-href
+    que cargan. Los popovers no tienen ninguna, asi que van por posicion.
+    """
+    toggle = (el.get("data-toggle") or "").lower()
+    if toggle in POPUP_TOGGLES:
+        target = el.get("data-target") or el.get("href")
+        if target and target.startswith("#"):
+            return f"{toggle}:{target}"
+        return f"{toggle}#{index}"
+
+    if el.get("data-el"):
+        return f"dialog:{el['data-el']}"
+    if el.get("data-href"):
+        return f"dialog:{_link_key(base_url, el['data-href'])}"
+    return f"dialog#{index}"
+
+
+def find_popup_elements(soup):
+    """Los elementos que disparan un popup.
+
+    El discriminador importa: en la pagina de ejemplos hay siete <a class="btn">
+    que parecen botones de popup y no tienen NINGUN atributo data-*. Esos no son
+    popups y no deben entrar al reporte.
+    """
+    elements = []
+    seen = set()
+
+    for el in soup.find_all(attrs={"data-toggle": True}):
+        if (el.get("data-toggle") or "").lower() in POPUP_TOGGLES and id(el) not in seen:
+            seen.add(id(el))
+            elements.append(el)
+
+    for el in soup.find_all(class_="dialog"):
+        if (el.get("data-el") or el.get("data-href")) and id(el) not in seen:
+            seen.add(id(el))
+            elements.append(el)
+
+    return elements
 
 
 def extract_units(html: str, base_url: str) -> list[TextUnit]:
@@ -136,6 +189,27 @@ def extract_units(html: str, base_url: str) -> list[TextUnit]:
     for field in soup.find_all("input", attrs={"type": ["submit", "button"]}):
         button_index += 1
         add("button", f"button#{button_index}", field.get("value", ""), "input")
+
+    # --- Popups: el texto vive en atributos, no en el cuerpo de la pagina ---
+    # Dos disparadores distintos pueden apuntar al mismo destino (dos links al
+    # mismo /eprice-form.htm). Son dos popups: cada uno tiene su propio texto.
+    vistas: dict[str, int] = {}
+    for popup_index, el in enumerate(find_popup_elements(soup), 1):
+        key = popup_identity(el, base_url, popup_index)
+        repeticion = vistas.get(key, 0)
+        vistas[key] = repeticion + 1
+        if repeticion:
+            key = f"{key}#{repeticion + 1}"
+        add("popup_trigger", key, el.get_text(strip=True), el.name)
+        add("popup_title", key, el.get("data-title") or el.get("title") or "", el.name)
+        add("popup_content", key, el.get("data-content") or "", el.name)
+
+        # Los dialogos inline apuntan a un div oculto con el contenido real
+        target = el.get("data-el") or ""
+        if target.startswith("#"):
+            node = soup.find(id=target[1:])
+            if node is not None:
+                add("popup_content", key, node.get_text(" ", strip=True), node.name)
 
     for image in soup.find_all("img"):
         alt = (image.get("alt") or "").strip()

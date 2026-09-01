@@ -29,6 +29,8 @@ class Verdict(str, Enum):
     UNTRANSLATED = "untranslated"
     MISSING = "missing"
     LOCALE_NOT_APPLIED = "locale_not_applied"
+    POPUP_MISSING = "popup_missing"
+    POPUP_EXTRA = "popup_extra"
     # Unidades
     UNIT_NOT_CONVERTED = "unit_not_converted"
     UNIT_MISLABELED = "unit_mislabeled"
