@@ -133,7 +133,8 @@ qa/
   engine.py            orquesta los checks
   findings.py          modelo de hallazgos
   export.py            CSV
-  checks/              los seis checks
+  browser.py           verificacion de popups con Playwright
+  checks/              los checks
 tests/
 data/
 ```
@@ -149,13 +150,12 @@ data/
   página real son el 76% del reporte y casi todos son nombres de modelo,
   direcciones y copy de marketing.
 
-## Código heredado
-
-`scraper.py`, `workflow.py`, `agents/`, `chains/`, `tools/` y
-`translations.csv` son de la versión anterior. Ya están reemplazados y nada del
-código actual los importa. Necesitan `langchain` y `langchain-google-genai`,
-que no están en `requirements.txt`.
+## Código desconectado
 
 `qa/llm.py` y `qa/advisor.py` son una capa opcional de sugerencias con un
-modelo local, construida y luego desconectada. No los importa nadie salvo su
-propio test.
+modelo local (Ollama), construida y luego desconectada a pedido. Nada del flujo
+los importa; solo su propio test, `tests/test_ai_no_perjudica.py`, que verifica
+que la capa no puede alterar ni ocultar ningún hallazgo de QA.
+
+Para reconectarla harían falta dos cambios: el flag en `scan.py` y la casilla
+en `app.py` con su plantilla.

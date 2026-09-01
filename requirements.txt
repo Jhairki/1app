@@ -10,7 +10,3 @@ playwright>=1.40.0
 
 # Todo lo demas que usa el motor es libreria estandar de Python:
 # csv, re, difflib, unicodedata, html, urllib, dataclasses, threading.
-#
-# Los modulos viejos (workflow.py, agents/, chains/, tools/, scraper.py) si
-# necesitan langchain y langchain-google-genai, pero ya estan reemplazados y
-# nada del codigo actual los importa.
