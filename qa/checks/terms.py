@@ -19,11 +19,25 @@ from difflib import SequenceMatcher
 from qa.casing import apply_case_style, case_compatible, case_style, describe
 from qa.findings import Finding, Severity, Verdict
 from qa.glossary import Entry, Glossary, Policy
-from qa.normalize import differs_only_by_accent, normalize, normalize_display
+from qa.normalize import (differs_only_by_accent, normalize, normalize_display,
+                          strip_accents)
 
 # Arriba de esto, dos textos distintos se consideran "casi el mismo".
 # Aplica cuando SI sabemos que termino se esperaba, por el par en ingles.
 NEAR_MISS_RATIO = 0.85
+
+# Dos palabras que se parecen tanto son la misma mal escrita; por debajo, son
+# palabras distintas. El umbral cae en el hueco que dejan los datos reales:
+#
+#   typos y acentos        nuevoss/nuevos 92%   vehiculos/vehículos 89%
+#   -------------------------------------------------- 0.82
+#   variantes distintas    financiación/financiamiento 77%
+#                          certificados/clasificados 75%
+#   palabras distintas     piezas/partes 50%    centro/departamento 44%
+#
+# Las del medio son palabras distintas de la misma raiz, no errores de tipeo:
+# si el glosario dice 'Financiamiento', 'Financiación' lo incumple igual.
+SAME_WORD_RATIO = 0.82
 
 # Cuando NO hay par en ingles hay que adivinar contra que entrada comparar, y
 # adivinar mal cuesta caro: en un sitio real 'Vehiculos Usados Certificados'
@@ -51,6 +65,39 @@ def build_pattern_regex(template: str) -> re.Pattern:
 
 def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
+
+
+def _palabra_distinta(encontrado: str, esperado: str):
+    """Devuelve (palabra_usada, palabra_correcta) si hay una palabra CAMBIADA.
+
+    None si las dos cadenas son las mismas palabras, escritas distinto.
+
+    El parecido de caracteres solo no alcanza para separar los dos casos:
+
+        'Vehiculos Nuevos'       vs 'Vehículos Nuevos'        94% -> falta tilde
+        'Departamento de Piezas' vs 'Departamento de Partes'  86% -> otra palabra
+
+    Los dos pasan el umbral, pero el primero es una advertencia y el segundo un
+    error del glosario. La diferencia se ve palabra por palabra: 'nuevos' contra
+    'nuevos' es la misma; 'piezas' contra 'partes' no se parecen en nada.
+    """
+    usadas = encontrado.split()
+    correctas = esperado.split()
+
+    # Distinta cantidad de palabras: la estructura cambio, no es un typo
+    if len(usadas) != len(correctas) or not usadas:
+        return None
+
+    for usada, correcta in zip(usadas, correctas):
+        if usada == correcta:
+            continue
+        if strip_accents(usada) == strip_accents(correcta):
+            continue  # la misma palabra sin acentuar
+        if similarity(usada, correcta) >= SAME_WORD_RATIO:
+            continue  # la misma palabra mal escrita
+        return usada, correcta
+
+    return None
 
 
 class TermChecker:
@@ -301,7 +348,9 @@ class TermChecker:
             )
 
         ratio = similarity(normalized, normalize(canonical))
-        if ratio >= NEAR_MISS_RATIO:
+        palabra_distinta = _palabra_distinta(normalized, normalize(canonical))
+
+        if ratio >= NEAR_MISS_RATIO and palabra_distinta is None:
             return Finding(
                 verdict=Verdict.NEAR_MISS,
                 severity=Severity.WARNING,
@@ -313,6 +362,30 @@ class TermChecker:
                 message=f"Very close to {canonical!r} ({ratio:.0%}), but not the same.",
                 context=entry.context,
                 meta={"reason": "similar", "ratio": round(ratio, 3)},
+            )
+
+        # Palabra cambiada: es un error de glosario aunque el parecido de
+        # caracteres sea alto. 'Departamento de Piezas' contra 'Departamento de
+        # Partes' da 86% porque comparten el prefijo, pero 'Piezas' no es
+        # 'Partes' mal escrito: es otra palabra.
+        if palabra_distinta is not None:
+            usada, correcta = palabra_distinta
+            return Finding(
+                verdict=Verdict.OFF_GLOSSARY,
+                severity=Severity.ERROR,
+                found=shown,
+                expected=canonical,
+                path=path,
+                auto_fixable=True,
+                fixed=canonical,
+                message=(
+                    f"Wrong word: the page says {usada!r} where the glossary says "
+                    f"{correcta!r}. For {entry.english!r} the official translation "
+                    f"is {canonical!r}."
+                ),
+                context=entry.context,
+                meta={"reason": "wrong_word", "used": usada, "expected_word": correcta,
+                      "ratio": round(ratio, 3)},
             )
 
         return Finding(
