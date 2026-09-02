@@ -6,11 +6,14 @@ Bargain Inventory,Vehículos Económicos,,translate,nav,
 Body Style,Estilo de Carrocería,,translate,filter,
 Car,Vehículo,,translate,,
 CarFinder,CarFinder,,do_not_translate,brand,nombre de producto
+Certified Pre-Owned,Vehículos Usados Certificados,,translate,nav,Certified = Certificados. No confundir con Classifieds = Clasificados
+Certified Pre-Owned Vehicles,Vehículos Usados Certificados,,translate,nav,forma larga de Certified Pre-Owned
 Certified Vehicles,Vehículos Certificados,,translate,nav,
 Chevy Cares,Chevy se Preocupa,,translate,brand,programa de marca — se traduce
 Classifieds New Inventory,Vehículos Nuevos Clasificados,,translate,nav,
 Classifieds Used Inventory,Vehículos Usados Clasificados,,translate,nav,
 Collision Center,Centro de Reparación de Choques,,translate,nav,
+Contact Us,Contáctenos,Contáctanos,translate,nav,tuteo vs. usted según cliente
 Customer Reviews,Opiniones de Clientes,,translate,,
 Dealer,Concesionario,,translate,,
 Detailing,Detailing,,do_not_translate,,se mantiene en inglés
@@ -44,6 +47,7 @@ Parts,Partes,,translate,nav,
 Parts Center,Departamento de Partes,,translate,nav,
 Payment Estimator,Calculadora de Pagos,,translate,cta,
 Pre-Owned Inventory,Vehículos Usados,,translate,nav,
+Pre-Owned Vehicles,Vehículos Usados,,translate,nav,misma traduccion que Pre-Owned Inventory
 Rebate,Rebaja,,translate,,
 Recall,Recall,Llamado a Revisión,do_not_translate,,se mantiene en inglés
 Rent,Alquilar,,translate,,
@@ -63,10 +67,9 @@ Truck,Camioneta,,translate,,
 Tune Up,Afinar,,translate,,
 Value Your Trade,Valore Su Vehículo,,translate,cta,misma traducción que Trade-In Appraisal
 Vehicle Showroom,Sala de Exposición de Vehículos,,translate,nav,
+View {n} Qualifying Vehicle(s),Ver {n} Vehículos que Califican,,pattern,,{n} = entero. Original usaba xx / XX
 Wholesale New Inventory,Vehículos Nuevos al Por Mayor,,translate,nav,
 Window Sticker,,,pending,,"SIN TRADUCCIÓN — el glosario original traía ""<<"""
 Wiper Blades,Limpiaparabrisas,,translate,,
 Zip Code,Código Postal,,translate,form,
-Contact Us,Contáctenos,Contáctanos,translate,nav,tuteo vs. usted según cliente
-View {n} Qualifying Vehicle(s),Ver {n} Vehículos que Califican,,pattern,,{n} = entero. Original usaba xx / XX
 {year} Vehicles Research Overview,Descripción General de Vehículos {year},,pattern,,{year} = año. Original usaba xxxx / xxxxx
