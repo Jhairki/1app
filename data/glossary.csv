@@ -40,7 +40,7 @@ Middle Initial,Inicial del Segundo Nombre,,translate,form,
 Mileage,Millaje,,translate,spec,el glosario original traía la clave mal escrita (Milleage)
 New Inventory,Vehículos Nuevos,,translate,nav,
 New Lineup,Nueva Alineación,,translate,nav,
-Oil Change Service,Servicio de Cambio de Aceite,,translate,,
+Oil Change Service,Servicio de Cambio de Aceite,,translate,,oferta con nombre propio -> Servicio
 Opt Out Form,Formulario de Exclusión,,translate,form,
 Owners,Propietarios,,translate,nav,
 Parts,Partes,,translate,nav,
@@ -54,9 +54,9 @@ Rent,Alquilar,,translate,,
 Research,Explorar,,translate,nav,
 Research Center,Centro de Exploración de Vehículos,,translate,nav,
 Schedule,Agendar,,translate,cta,
-Service,Mantenimiento,,translate,nav,
-Service & Parts,Mantenimiento y Partes,,translate,nav,
-Service Care,Servicio de Cuidado,,translate,,
+Service,Mantenimiento,,translate,nav,area/departamento -> Mantenimiento. Ver regla service_mantenimiento_vs_servicio
+Service & Parts,Mantenimiento y Partes,,translate,nav,area/departamento -> Mantenimiento
+Service Care,Servicio de Cuidado,,translate,,oferta con nombre propio -> Servicio
 Specials,Ofertas,,translate,nav,
 Starting at,Desde,,translate,price,
 Tire,Neumático,,translate,,
