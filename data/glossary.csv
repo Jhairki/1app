@@ -40,13 +40,13 @@ Middle Initial,Inicial del Segundo Nombre,,translate,form,
 Mileage,Millaje,,translate,spec,el glosario original traía la clave mal escrita (Milleage)
 New Inventory,Vehículos Nuevos,,translate,nav,
 New Lineup,Nueva Alineación,,translate,nav,
-Oil Change Service,Servicio de Cambio de Aceite,,translate,,oferta con nombre propio -> Servicio
+Oil Change Service,Servicio de Cambio de Aceite,,translate,,oferta con nombre propio -> Servicio. CONFIRMADO por el equipo 2026-09-02
 Opt Out Form,Formulario de Exclusión,,translate,form,
 Owners,Propietarios,,translate,nav,
 Parts,Partes,,translate,nav,
 Parts Center,Departamento de Partes,,translate,nav,
 Payment Estimator,Calculadora de Pagos,,translate,cta,
-Pre-Owned Inventory,Vehículos Usados,,translate,nav,
+Pre-Owned Inventory,Vehículos Usados,,translate,nav,"CONFIRMADO por el equipo 2026-09-02: sin el prefijo ""Inventario de"""
 Pre-Owned Vehicles,Vehículos Usados,,translate,nav,misma traduccion que Pre-Owned Inventory
 Rebate,Rebaja,,translate,,
 Recall,Recall,Llamado a Revisión,do_not_translate,,se mantiene en inglés
