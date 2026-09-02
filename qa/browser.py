@@ -254,8 +254,8 @@ def check_popups_live(spanish_url: str, english_url: str, path: str = "",
                 found="",
                 path=path,
                 message=(
-                    "Playwright no esta instalado, no se pudo verificar que los "
-                    "popups abran. Instalalo con: pip install playwright && "
+                    "Playwright is not installed, so popup behavior could not be "
+                    "verified. Install it with: pip install playwright && "
                     "playwright install chromium"
                 ),
             )
@@ -286,8 +286,8 @@ def check_popups_live(spanish_url: str, english_url: str, path: str = "",
                     path=path,
                     auto_fixable=False,
                     message=(
-                        f"Este popup no abre en INGLES tampoco ({clave}). Es un bug "
-                        "del sitio, no de la localizacion."
+                        f"This popup does not open in ENGLISH either ({clave}). It is a "
+                        "site bug, not a localization one."
                     ),
                     context=f"popup {clave}",
                     meta={"clave": clave, "en_abrio": False,
@@ -309,7 +309,7 @@ def check_popups_live(spanish_url: str, english_url: str, path: str = "",
                     path=path,
                     auto_fixable=False,
                     message=(
-                        f"El popup abre en ingles pero NO en español ({clave})."
+                        f"The popup opens in English but NOT in Spanish ({clave})."
                         + (f" Error: {es['error']}" if es["error"] else "")
                     ),
                     context=f"popup {clave}",

@@ -62,12 +62,12 @@ class TextUnit:
         if self.kind == "link":
             return f"link -> {self.key}"
         if self.kind == "image_alt":
-            return f"alt de {self.key}"
+            return f"alt of {self.key}"
         if self.kind == "meta":
             return f"meta {self.key}"
         if self.kind in POPUP_KINDS:
-            etiqueta = {"popup_trigger": "disparador", "popup_title": "titulo",
-                        "popup_content": "contenido"}[self.kind]
+            etiqueta = {"popup_trigger": "trigger", "popup_title": "title",
+                        "popup_content": "content"}[self.kind]
             return f"popup {self.key} ({etiqueta})"
         return f"{self.kind} {self.key}"
 

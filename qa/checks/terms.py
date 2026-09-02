@@ -116,9 +116,9 @@ class TermChecker:
             auto_fixable=True,
             fixed=corrected,
             message=(
-                f"El termino es correcto pero las mayusculas no siguen al ingles: "
-                f"{english_text!r} va en {describe(case_style(english_text))} y la "
-                f"pagina usa {describe(case_style(spanish_text))}."
+                f"The term is right but the capitalization does not follow English: "
+                f"{english_text!r} is {describe(case_style(english_text))} while the "
+                f"page uses {describe(case_style(spanish_text))}."
             ),
             context=entry.context,
             meta={
@@ -162,8 +162,8 @@ class TermChecker:
                 auto_fixable=True,
                 fixed=expected,
                 message=(
-                    f"El texto sigue en ingles en la pagina española. "
-                    f"Debe decir {expected!r}."
+                    f"The text is still in English on the Spanish page. "
+                    f"It should read {expected!r}."
                 ),
                 context=untranslated.context,
             )
@@ -181,8 +181,8 @@ class TermChecker:
                 expected=entry.spanish_canonical,
                 path=path,
                 message=(
-                    f"Encaja en la plantilla inglesa {entry.english!r}; "
-                    f"debe seguir la española {entry.spanish_canonical!r}."
+                    f"Matches the English template {entry.english!r}; it should follow "
+                    f"the Spanish one {entry.spanish_canonical!r}."
                 ),
                 context=entry.context,
             )
@@ -211,9 +211,9 @@ class TermChecker:
                     auto_fixable=True,
                     fixed=corrected,
                     message=(
-                        f"El ingles decia {expected_entry.english!r}, que se traduce "
-                        f"{expected_entry.spanish_canonical!r}, pero la pagina usa la "
-                        f"traduccion de {entry.english!r}."
+                        f"English said {expected_entry.english!r}, which translates to "
+                        f"{expected_entry.spanish_canonical!r}, but the page uses the "
+                        f"translation of {entry.english!r}."
                     ),
                     context=expected_entry.context,
                 )
@@ -231,7 +231,7 @@ class TermChecker:
                     expected=entry.spanish_canonical,
                     path=path,
                     message=(
-                        f"Variante aceptada. La oficial es {entry.spanish_canonical!r}."
+                        f"Accepted variant. The official one is {entry.spanish_canonical!r}."
                     ),
                     context=entry.context,
                 )
@@ -268,8 +268,8 @@ class TermChecker:
                     auto_fixable=False,
                     fixed=english_shown,
                     message=(
-                        "Mismo nombre escrito distinto entre idiomas (cambian espacios "
-                        "o puntuacion). Los nombres de modelo se copian tal cual."
+                        "Same name spelled differently across languages (spacing or "
+                        "punctuation). Model names are copied verbatim."
                     ),
                 )
 
@@ -278,7 +278,7 @@ class TermChecker:
             severity=Severity.INFO,
             found=shown,
             path=path,
-            message="No esta en el glosario. Candidato a agregarlo.",
+            message="Not in the glossary. Candidate to add.",
         )
 
     def _verdict_against(self, entry: Entry, normalized: str, shown: str, path: str,
@@ -295,7 +295,7 @@ class TermChecker:
                 path=path,
                 auto_fixable=True,
                 fixed=canonical,
-                message=f"Solo difiere en los acentos de {canonical!r}.",
+                message=f"Differs from {canonical!r} only in the accents.",
                 context=entry.context,
                 meta={"reason": "accent"},
             )
@@ -310,7 +310,7 @@ class TermChecker:
                 path=path,
                 auto_fixable=False,
                 fixed=canonical,
-                message=f"Muy parecido a {canonical!r} ({ratio:.0%}), pero no es igual.",
+                message=f"Very close to {canonical!r} ({ratio:.0%}), but not the same.",
                 context=entry.context,
                 meta={"reason": "similar", "ratio": round(ratio, 3)},
             )
@@ -324,8 +324,8 @@ class TermChecker:
             auto_fixable=True,
             fixed=canonical,
             message=(
-                f"Traduccion fuera de glosario. Para {entry.english!r} "
-                f"la oficial es {canonical!r}."
+                f"Translation outside the glossary. For {entry.english!r} the "
+                f"official one is {canonical!r}."
             ),
             context=entry.context,
             meta={"ratio": round(ratio, 3)},

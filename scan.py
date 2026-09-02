@@ -1,11 +1,11 @@
-"""CLI: escanea un sitio y reporta los hallazgos de QA en español.
+"""CLI: scan a site and report the QA findings.
 
-    python scan.py https://midealer.com
-    python scan.py https://midealer.com --max-pages 5
-    python scan.py https://midealer.com --paths /inventario/ /servicio/
-    python scan.py https://midealer.com --json reporte.json
+    python scan.py https://mydealer.com
+    python scan.py https://mydealer.com --max-pages 5
+    python scan.py https://mydealer.com --paths /inventory/ /service/
+    python scan.py https://mydealer.com --csv report.csv
 
-Sale con codigo 1 si hay errores, para encadenarlo en CI.
+Exits with code 1 when there are errors, so it can gate a CI pipeline.
 """
 
 import argparse
@@ -31,35 +31,35 @@ def print_report(result) -> None:
 
     print()
     print("=" * 88)
-    print(f"QA DE LOCALIZACION  -  {result.base_url}")
+    print(f"LOCALIZATION QA  -  {result.base_url}")
     print("=" * 88)
     print(
-        f"  {summary['pages_scanned']} paginas escaneadas"
-        f" | {summary['units_checked']} textos revisados"
-        f" | {summary['pages_failed']} paginas fallidas"
+        f"  {summary['pages_scanned']} pages scanned"
+        f" | {summary['units_checked']} texts checked"
+        f" | {summary['pages_failed']} pages failed"
     )
     print(
-        f"  {summary['errors']} errores"
-        f" | {summary['warnings']} advertencias"
-        f" | {summary['infos']} informativos"
-        f" | {summary['auto_fixable']} auto-corregibles"
+        f"  {summary['errors']} errors"
+        f" | {summary['warnings']} warnings"
+        f" | {summary['infos']} informational"
+        f" | {summary['auto_fixable']} auto-fixable"
     )
-    print(f"  paginas con errores: {summary['affected_pages']}")
+    print(f"  pages with errors: {summary['affected_pages']}")
 
     if summary["by_verdict"]:
         print()
-        print("  Por tipo de hallazgo:")
+        print("  By finding type:")
         for verdict, count in summary["by_verdict"].items():
             print(f"    {count:>4}  {verdict}")
 
     resumen_paths = [r for r in by_path(result) if r["errores"] or r["advertencias"] or r["error"]]
     if len(result.pages) > 1 and resumen_paths:
         print()
-        print("  Paginas con hallazgos:")
+        print("  Pages with findings:")
         ancho = max(len(r["path"]) for r in resumen_paths)
         for r in resumen_paths:
             if r["error"]:
-                print(f"    {r['path']:<{ancho}}  FALLO")
+                print(f"    {r['path']:<{ancho}}  FAILED")
                 continue
             tipos = " ".join(f"{k}={v}" for k, v in r["tipos"].items())
             print(f"    {r['path']:<{ancho}}  {r['errores']}E {r['advertencias']}A   {tipos}")
@@ -68,14 +68,14 @@ def print_report(result) -> None:
         if page.error:
             print()
             print(f"--- {page.path}")
-            print(f"    FALLO: {page.error}")
+            print(f"    FAILED: {page.error}")
             continue
         if not page.findings:
             continue
 
         print()
         print("-" * 88)
-        print(f"{page.path}   ({page.errors} errores de {len(page.findings)} hallazgos)")
+        print(f"{page.path}   ({page.errors} errors of {len(page.findings)} findings)")
         print(f"  ES: {page.spanish_url}")
         print(f"  EN: {page.english_url}")
 
@@ -83,36 +83,36 @@ def print_report(result) -> None:
             print()
             print(f"  {MARKS[finding.severity.value]} [{finding.verdict.value}]")
             if finding.found:
-                print(f"      encontrado : {finding.found!r}")
+                print(f"      found    : {finding.found!r}")
             if finding.expected:
-                print(f"      esperado   : {finding.expected!r}")
+                print(f"      expected : {finding.expected!r}")
             print(f"      {finding.message}")
             if finding.auto_fixable:
-                print(f"      corregir a : {finding.fixed!r}")
+                print(f"      fix to   : {finding.fixed!r}")
             if finding.context:
-                print(f"      contexto   : {finding.context[:100]}")
+                print(f"      context  : {finding.context[:100]}")
 
     print()
     print("=" * 88)
     if summary["errors"]:
-        print(f"RESULTADO: {summary['errors']} errores. La pagina no esta lista.")
+        print(f"RESULT: {summary['errors']} errors. Not ready to publish.")
     else:
-        print("RESULTADO: sin errores.")
+        print("RESULT: no errors.")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="QA de localizacion EN->ES para sitios de dealers.")
-    parser.add_argument("base_url", help="URL base del sitio")
-    parser.add_argument("--paths", nargs="*", help="Paths a revisar. Por defecto salen de la navegacion.")
-    parser.add_argument("--max-pages", type=int, default=0, help="Limite de paginas a escanear")
-    parser.add_argument("--json", dest="json_path", help="Guardar el reporte como JSON")
+    parser = argparse.ArgumentParser(description="EN->ES localization QA for dealer sites.")
+    parser.add_argument("base_url", help="Base URL of the site")
+    parser.add_argument("--paths", nargs="*", help="Paths to check. Taken from the navigation by default.")
+    parser.add_argument("--max-pages", type=int, default=0, help="Maximum number of pages to scan")
+    parser.add_argument("--json", dest="json_path", help="Save the report as JSON")
     parser.add_argument("--popups", action="store_true",
-                        help="Verificar con un navegador real que los popups abren (lento)")
-    parser.add_argument("--csv", dest="csv_path", help="Guardar el reporte como CSV (Excel)")
+                        help="Use a real browser to verify popups open (slow)")
+    parser.add_argument("--csv", dest="csv_path", help="Save the report as CSV (Excel)")
     parser.add_argument("--unknown", action="store_true",
-                        help="Incluir los terminos que no estan en el glosario (mucho ruido)")
+                        help="Include terms missing from the glossary (very noisy)")
     parser.add_argument("--skip-glossary-check", action="store_true",
-                        help="Escanear aunque el glosario tenga errores")
+                        help="Scan even if the glossary has errors")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -123,12 +123,12 @@ def main() -> int:
 
     glossary, issues = load_glossary()
     if has_errors(issues) and not args.skip_glossary_check:
-        print("El glosario tiene errores; corrigelos antes de escanear:")
+        print("The glossary has errors; fix them before scanning:")
         for issue in issues:
             if issue.level is Level.ERROR:
                 print(f"  X {issue.source}:{issue.row} ({issue.key}) {issue.message}")
         print()
-        print("Corre  python validate_glossary.py  para el detalle completo.")
+        print("Run  python validate_glossary.py  for the full detail.")
         return 1
 
     result = scan_site(
@@ -141,26 +141,26 @@ def main() -> int:
     )
 
     if result.error:
-        print(f"El escaneo fallo: {result.error}")
+        print(f"Scan failed: {result.error}")
         return 1
 
     if args.popups:
         print()
-        print("Verificando popups con navegador real (esto tarda)...")
+        print("Verifying popups with a real browser (this takes a while)...")
         for page in result.pages:
             if page.error:
                 continue
             hallazgos = check_popups_live(page.spanish_url, page.english_url, page.path)
             if hallazgos:
                 page.findings.extend(hallazgos)
-                print(f"  {page.path}: {len(hallazgos)} hallazgos de funcionalidad")
+                print(f"  {page.path}: {len(hallazgos)} behavior findings")
 
     print_report(result)
 
     if args.csv_path:
         filas = write_csv(result, args.csv_path)
         print()
-        print(f"CSV guardado en {args.csv_path} ({filas} filas)")
+        print(f"CSV saved to {args.csv_path} ({filas} rows)")
 
     if args.json_path:
         payload = {
@@ -181,7 +181,7 @@ def main() -> int:
         Path(args.json_path).write_text(
             json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        print(f"\nJSON guardado en {args.json_path}")
+        print(f"\nJSON saved to {args.json_path}")
 
     return 1 if result.summary()["errors"] else 0
 

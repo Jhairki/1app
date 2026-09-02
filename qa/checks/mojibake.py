@@ -103,7 +103,7 @@ def find_char_issues(text: str, char_rules=None, path: str = "") -> list[Finding
                 _finding(
                     Verdict.MOJIBAKE, Severity.ERROR, broken, correct, path,
                     text, match.start(), match.end(),
-                    f"Mojibake UTF-8/CP1252: {broken!r} debe ser {correct!r}.",
+                    f"UTF-8/CP1252 mojibake: {broken!r} should be {correct!r}.",
                     True, "generada",
                 )
             )
@@ -127,11 +127,11 @@ def find_char_issues(text: str, char_rules=None, path: str = "") -> list[Finding
                 continue
 
             if rule.auto_fixable and rule.replacement:
-                message = f"{rule.pattern!r} debe ser {rule.replacement!r}."
+                message = f"{rule.pattern!r} should be {rule.replacement!r}."
             elif rule.notes:
-                message = f"{rule.pattern!r} requiere revision humana. {rule.notes}"
+                message = f"{rule.pattern!r} needs human review. {rule.notes}"
             else:
-                message = f"{rule.pattern!r} requiere revision humana."
+                message = f"{rule.pattern!r} needs human review."
 
             findings.append(
                 _finding(

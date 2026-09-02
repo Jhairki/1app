@@ -160,7 +160,7 @@ def load_entries(path: Path):
         policy_raw = (raw.get("policy") or "").strip().lower()
 
         if not english:
-            issues.append(Issue(Level.ERROR, "glossary", index, "-", "Fila sin término en inglés."))
+            issues.append(Issue(Level.ERROR, "glossary", index, "-", "Row with no English term."))
             continue
 
         # Se revisa aqui, sobre el valor CRUDO: mas abajo ya viene stripped
@@ -169,7 +169,7 @@ def load_entries(path: Path):
             if original != original.strip() or "  " in original:
                 issues.append(
                     Issue(Level.WARNING, "glossary", index, english,
-                          f"{label} tiene espacios sobrantes: {original!r}")
+                          f"{label} has stray whitespace: {original!r}")
                 )
 
         try:
@@ -177,7 +177,7 @@ def load_entries(path: Path):
         except ValueError:
             issues.append(
                 Issue(Level.ERROR, "glossary", index, english,
-                      f"policy inválida: {policy_raw!r}. Válidas: {[p.value for p in Policy]}")
+                      f"invalid policy: {policy_raw!r}. Valid ones: {[p.value for p in Policy]}")
             )
             policy = Policy.TRANSLATE
 
@@ -211,8 +211,8 @@ def validate_entries(entries):
         if key in seen_english:
             issues.append(
                 Issue(Level.ERROR, "glossary", row, name,
-                      f"Término duplicado (ya está en la fila {seen_english[key]}). "
-                      "Si son variantes válidas, únelas en spanish_accepted.")
+                      f"Duplicate term (already on row {seen_english[key]}). "
+                      "If they are valid variants, merge them into spanish_accepted.")
             )
         else:
             seen_english[key] = row
@@ -221,19 +221,19 @@ def validate_entries(entries):
         if entry.spanish_canonical.strip().lower() in SUSPICIOUS_VALUES:
             issues.append(
                 Issue(Level.ERROR, "glossary", row, name,
-                      f"spanish_canonical tiene un valor basura: {entry.spanish_canonical!r}")
+                      f"spanish_canonical holds a junk value: {entry.spanish_canonical!r}")
             )
 
         # 3. El glosario mismo corrupto
         for label, value in (("spanish_canonical", entry.spanish_canonical), ("english", entry.english)):
             if MOJIBAKE_IN_GLOSSARY.search(value):
                 issues.append(
-                    Issue(Level.ERROR, "glossary", row, name, f"{label} contiene mojibake: {value!r}")
+                    Issue(Level.ERROR, "glossary", row, name, f"{label} contains mojibake: {value!r}")
                 )
             if ENTITY_PATTERN.search(value):
                 issues.append(
                     Issue(Level.ERROR, "glossary", row, name,
-                          f"{label} contiene una entidad HTML sin decodificar: {value!r}")
+                          f"{label} contains an undecoded HTML entity: {value!r}")
                 )
 
         # 4. Coherencia según la policy
@@ -241,39 +241,39 @@ def validate_entries(entries):
             if not entry.spanish_canonical:
                 issues.append(
                     Issue(Level.ERROR, "glossary", row, name,
-                          "policy=translate pero no hay traducción. Usa policy=pending si aún no la tienes.")
+                          "policy=translate but there is no translation. Use policy=pending if you do not have it yet.")
                 )
             elif normalize(entry.spanish_canonical) == key:
                 issues.append(
                     Issue(Level.WARNING, "glossary", row, name,
-                          "La traducción es idéntica al inglés. Si es intencional, marca do_not_translate.")
+                          "The translation is identical to the English. If intentional, mark do_not_translate.")
                 )
 
         elif entry.policy is Policy.DO_NOT_TRANSLATE:
             if normalize(entry.spanish_canonical) != key:
                 issues.append(
                     Issue(Level.WARNING, "glossary", row, name,
-                          f"do_not_translate pero la canónica difiere del inglés "
-                          f"({entry.spanish_canonical!r}). Deberia ser translate?")
+                          f"do_not_translate but the canonical differs from the English "
+                          f"({entry.spanish_canonical!r}). Should it be translate?")
                 )
 
         elif entry.policy is Policy.PATTERN:
             if not entry.placeholders_en:
                 issues.append(
                     Issue(Level.ERROR, "glossary", row, name,
-                          "policy=pattern pero el inglés no tiene placeholders entre llaves.")
+                          "policy=pattern but the English has no placeholders in braces.")
                 )
             if entry.placeholders_en != entry.placeholders_es:
                 issues.append(
                     Issue(Level.ERROR, "glossary", row, name,
-                          f"Los placeholders no coinciden: EN={sorted(entry.placeholders_en)} "
+                          f"Placeholders do not match: EN={sorted(entry.placeholders_en)} "
                           f"ES={sorted(entry.placeholders_es)}")
                 )
 
         elif entry.policy is Policy.PENDING:
             issues.append(
                 Issue(Level.WARNING, "glossary", row, name,
-                      "Término PENDIENTE - el QA no puede validarlo hasta que tenga traducción.")
+                      "PENDING term - QA cannot validate it until it has a translation.")
             )
 
         # 5. Variantes redundantes
@@ -281,7 +281,7 @@ def validate_entries(entries):
             if normalize(variant) == normalize(entry.spanish_canonical):
                 issues.append(
                     Issue(Level.WARNING, "glossary", row, name,
-                          f"La variante aceptada {variant!r} es igual a la canónica; sobra.")
+                          f"Accepted variant {variant!r} equals the canonical one; it is redundant.")
                 )
 
         if entry.spanish_canonical and entry.policy is not Policy.PATTERN:
@@ -292,8 +292,8 @@ def validate_entries(entries):
         if len(owners) > 1:
             issues.append(
                 Issue(Level.INFO, "glossary", 0, ", ".join(owners),
-                      f"Comparten la misma traducción española ({spanish!r}). "
-                      "Es válido, pero el QA no podrá distinguir cuál se esperaba.")
+                      f"They share the same Spanish translation ({spanish!r}). "
+                      "That is valid, but QA cannot tell which one was expected.")
             )
 
     return issues
@@ -307,7 +307,7 @@ def load_char_rules(path: Path):
     for index, raw in enumerate(_read_csv(path), start=2):
         pattern = raw.get("pattern") or ""
         if not pattern.strip():
-            issues.append(Issue(Level.ERROR, "char_rules", index, "-", "Regla sin patrón."))
+            issues.append(Issue(Level.ERROR, "char_rules", index, "-", "Rule with no pattern."))
             continue
 
         rule = CharRule(
@@ -323,28 +323,28 @@ def load_char_rules(path: Path):
         if rule.rule_type not in VALID_RULE_TYPES:
             issues.append(
                 Issue(Level.ERROR, "char_rules", index, pattern,
-                      f"rule_type inválido: {rule.rule_type!r}. Válidos: {sorted(VALID_RULE_TYPES)}")
+                      f"invalid rule_type: {rule.rule_type!r}. Valid ones: {sorted(VALID_RULE_TYPES)}")
             )
         if rule.severity not in VALID_SEVERITIES:
             issues.append(
                 Issue(Level.ERROR, "char_rules", index, pattern,
-                      f"severity inválida: {rule.severity!r}. Válidas: {sorted(VALID_SEVERITIES)}")
+                      f"invalid severity: {rule.severity!r}. Valid ones: {sorted(VALID_SEVERITIES)}")
             )
         if rule.auto_fixable and not rule.replacement:
             issues.append(
                 Issue(Level.ERROR, "char_rules", index, pattern,
-                      "auto_fixable=yes pero no hay reemplazo. Debe ser no, o llenar replacement.")
+                      "auto_fixable=yes but there is no replacement. Set it to no, or fill replacement.")
             )
         if not rule.auto_fixable and rule.replacement:
             issues.append(
                 Issue(Level.INFO, "char_rules", index, pattern,
-                      f"auto_fixable=no pero hay reemplazo {rule.replacement!r}; "
-                      "se usará solo como sugerencia.")
+                      f"auto_fixable=no but a replacement {rule.replacement!r} is set; "
+                      "it will be used only as a suggestion.")
             )
         if pattern in seen:
             issues.append(
                 Issue(Level.ERROR, "char_rules", index, pattern,
-                      f"Patrón duplicado (ya está en la fila {seen[pattern]}).")
+                      f"Duplicate pattern (already on row {seen[pattern]}).")
             )
         else:
             seen[pattern] = index
@@ -363,8 +363,8 @@ def load_char_rules(path: Path):
             ):
                 issues.append(
                     Issue(Level.WARNING, "char_rules", rule.row, rule.pattern,
-                          f"El patrón está contenido en {other.pattern!r} (fila {other.row}); "
-                          "aplica primero el más largo.")
+                          f"This pattern is contained in {other.pattern!r} (row {other.row}); "
+                          "apply the longer one first.")
                 )
 
     return rules, issues
@@ -380,14 +380,14 @@ def load_style_rules(path: Path):
         description = (raw.get("description") or "").strip()
 
         if not rule_id:
-            issues.append(Issue(Level.ERROR, "style_rules", index, "-", "Regla sin rule_id."))
+            issues.append(Issue(Level.ERROR, "style_rules", index, "-", "Rule with no rule_id."))
             continue
         if not description:
-            issues.append(Issue(Level.ERROR, "style_rules", index, rule_id, "Regla sin descripción."))
+            issues.append(Issue(Level.ERROR, "style_rules", index, rule_id, "Rule with no description."))
         if rule_id in seen:
             issues.append(
                 Issue(Level.ERROR, "style_rules", index, rule_id,
-                      f"rule_id duplicado (ya está en la fila {seen[rule_id]}).")
+                      f"Duplicate rule_id (already on row {seen[rule_id]}).")
             )
         else:
             seen[rule_id] = index

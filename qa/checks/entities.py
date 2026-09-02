@@ -55,7 +55,7 @@ def find_html_entities(text: str, path: str = "") -> list[Finding]:
                 path=path,
                 auto_fixable=True,
                 fixed=decoded,
-                message=f"Entidad HTML visible como texto: {raw} debe mostrarse como {decoded}",
+                message=f"HTML entity visible as literal text: {raw} should render as {decoded}",
                 context=_context(text, match.start(), match.end()),
             )
         )

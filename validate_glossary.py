@@ -1,8 +1,8 @@
-"""CLI: valida el glosario y las reglas antes de correr cualquier escaneo.
+"""CLI: validate the glossary and rules before running any scan.
 
     python validate_glossary.py
 
-Sale con codigo 1 si hay errores, para poder encadenarlo en CI.
+Exits with code 1 when there are errors, so it can gate a CI pipeline.
 """
 
 import sys
@@ -19,25 +19,25 @@ def main() -> int:
     glossary, issues = load_glossary()
 
     print("=" * 78)
-    print("VALIDACION DEL GLOSARIO")
+    print("GLOSSARY VALIDATION")
     print("=" * 78)
     print(
-        f"  {len(glossary)} terminos"
-        f" | {len(glossary.char_rules)} reglas de caracter"
-        f" | {len(glossary.style_rules)} reglas de estilo"
+        f"  {len(glossary)} terms"
+        f" | {len(glossary.char_rules)} character rules"
+        f" | {len(glossary.style_rules)} style rules"
     )
     print(
-        f"  indices: {len(glossary.by_english)} EN->ES"
+        f"  indexes: {len(glossary.by_english)} EN->ES"
         f" | {len(glossary.by_spanish)} ES->EN"
-        f" | {len(glossary.patterns)} patrones"
-        f" | {len(glossary.pending)} pendientes"
+        f" | {len(glossary.patterns)} patterns"
+        f" | {len(glossary.pending)} pending"
     )
 
     counts = summarize(issues)
     print(
-        f"  hallazgos: {counts['error']} errores"
-        f" | {counts['warning']} advertencias"
-        f" | {counts['info']} informativos"
+        f"  issues: {counts['error']} errors"
+        f" | {counts['warning']} warnings"
+        f" | {counts['info']} informational"
     )
     print()
 
@@ -53,10 +53,10 @@ def main() -> int:
         print()
 
     if has_errors(issues):
-        print("RESULTADO: el glosario tiene errores. Corrigelos antes de escanear.")
+        print("RESULT: the glossary has errors. Fix them before scanning.")
         return 1
 
-    print("RESULTADO: glosario utilizable.")
+    print("RESULT: glossary is usable.")
     return 0
 
 

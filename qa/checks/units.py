@@ -104,12 +104,12 @@ def check_units(spanish_text: str, english_text: str, path: str = "") -> list[Fi
                         verdict=Verdict.UNIT_NOT_CONVERTED,
                         severity=Severity.ERROR,
                         found=raw,
-                        expected=f"{same_as_english * MILES_TO_KM:,.0f} kilómetros o {same_as_english:,.0f} millas",
+                        expected=f"{same_as_english * MILES_TO_KM:,.0f} kilometers or {same_as_english:,.0f} miles",
                         path=path,
                         auto_fixable=False,
                         message=(
-                            f"Se cambió la unidad a kilómetros pero el número quedó igual que en "
-                            f"inglés ({same_as_english:,.0f} miles). El valor mostrado es incorrecto."
+                            f"The unit was changed to kilometers but the number stayed the same as "
+                            f"in English ({same_as_english:,.0f} miles). The displayed value is wrong."
                         ),
                         meta={"english_value": same_as_english, "spanish_value": value},
                     )
@@ -121,7 +121,7 @@ def check_units(spanish_text: str, english_text: str, path: str = "") -> list[Fi
                         severity=Severity.INFO,
                         found=raw,
                         path=path,
-                        message="No se encontró el valor equivalente en la página en inglés para verificar la conversión.",
+                        message="No matching value found on the English page to verify the conversion.",
                         meta={"spanish_value": value},
                     )
                 )
@@ -133,12 +133,12 @@ def check_units(spanish_text: str, english_text: str, path: str = "") -> list[Fi
                         verdict=Verdict.UNIT_MISLABELED,
                         severity=Severity.ERROR,
                         found=raw,
-                        expected=f"{converted_from:,.0f} millas",
+                        expected=f"{converted_from:,.0f} miles",
                         path=path,
                         auto_fixable=False,
                         message=(
-                            f"El número fue convertido a kilómetros ({value:,.0f}) pero la unidad "
-                            f"dice millas. En inglés son {converted_from:,.0f} miles."
+                            f"The number was converted to kilometers ({value:,.0f}) but the unit "
+                            f"says miles. English says {converted_from:,.0f} miles."
                         ),
                         meta={"english_value": converted_from, "spanish_value": value},
                     )
@@ -150,7 +150,7 @@ def check_units(spanish_text: str, english_text: str, path: str = "") -> list[Fi
                         severity=Severity.INFO,
                         found=raw,
                         path=path,
-                        message="No se encontró el valor equivalente en la página en inglés para verificar.",
+                        message="No matching value found on the English page to verify.",
                         meta={"spanish_value": value},
                     )
                 )

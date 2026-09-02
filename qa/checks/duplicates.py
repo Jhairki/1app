@@ -53,8 +53,8 @@ def find_duplicates(units, glossary, path: str = "") -> list[Finding]:
                     path=path,
                     auto_fixable=False,
                     message=(
-                        "El mismo termino aparece dos veces en la pagina, una version "
-                        "con acentos y otra sin. Solo una debe quedar."
+                        "The same term appears twice on the page, one version with accents "
+                        "and one without. Only one should remain."
                     ),
                     context=f"{unit_a.describe()} y {unit_b.describe()}",
                     meta={"a": unit_a.text, "b": unit_b.text, "reason": "accent"},
@@ -80,8 +80,8 @@ def find_duplicates(units, glossary, path: str = "") -> list[Finding]:
                     path=path,
                     auto_fixable=False,
                     message=(
-                        f"La pagina muestra el termino en ingles ({entry.english!r}) y "
-                        f"tambien traducido ({entry.spanish_canonical!r}). Sobra el ingles."
+                        f"The page shows the term in English ({entry.english!r}) and also "
+                        f"translated ({entry.spanish_canonical!r}). The English one is redundant."
                     ),
                     context=f"{unit_en.describe()} y {unit_es.describe()}",
                     meta={"english": entry.english, "spanish": entry.spanish_canonical,

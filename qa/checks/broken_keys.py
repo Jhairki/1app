@@ -18,32 +18,32 @@ CONTEXT_CHARS = 40
 KEY_PATTERNS = [
     (
         re.compile(r"\bSITEBUILDER_[A-Z0-9_]+\b", re.IGNORECASE),
-        "clave interna de SiteBuilder",
+        "SiteBuilder internal key",
     ),
     (
         re.compile(r"\{\{[^{}]{1,80}\}\}"),
-        "placeholder de plantilla sin resolver",
+        "unresolved template placeholder",
     ),
     (
         re.compile(r"\$\{[^{}]{1,80}\}"),
-        "placeholder de plantilla sin resolver",
+        "unresolved template placeholder",
     ),
     (
         re.compile(r"\[\[[^\[\]]{1,80}\]\]"),
-        "placeholder sin resolver",
+        "unresolved placeholder",
     ),
     (
         re.compile(r"%%[^%]{1,80}%%"),
-        "placeholder sin resolver",
+        "unresolved placeholder",
     ),
     (
         # Al menos tres segmentos: FOO_BAR_BAZ. Evita marcar siglas sueltas.
         re.compile(r"\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+){2,}\b"),
-        "clave en mayusculas con guiones bajos",
+        "uppercase key with underscores",
     ),
     (
         re.compile(r"\b(?:undefined|null|NaN)\b"),
-        "valor de codigo visible en la pagina",
+        "code value visible on the page",
     ),
 ]
 
@@ -75,8 +75,8 @@ def _finding(hit: str, path: str, context: str, base_message: str,
             path=path,
             auto_fixable=False,
             message=(
-                f"{base_message} Tambien aparece en la pagina en INGLES, asi que "
-                "el label nunca se lleno en el CMS. No es un bug de traduccion."
+                f"{base_message} It also appears on the ENGLISH page, so the label "
+                "was never filled in the CMS. This is not a translation bug."
             ),
             context=context,
             meta={"in_english_too": True},
@@ -115,7 +115,7 @@ def find_broken_keys(text: str, path: str = "",
     if WHOLE_LABEL_KEY.match(stripped):
         seen.add(stripped)
         findings.append(_finding(stripped, path, stripped,
-                                 "El label completo es una clave interna, no texto para el usuario.",
+                                 "The whole label is an internal key, not text meant for the user.",
                                  english_keys))
 
     for pattern, description in KEY_PATTERNS:
@@ -126,7 +126,7 @@ def find_broken_keys(text: str, path: str = "",
             seen.add(hit)
             findings.append(_finding(
                 hit, path, _context(text, match.start(), match.end()),
-                f"{description}: {hit!r} no deberia ser visible.", english_keys))
+                f"{description}: {hit!r} should not be visible.", english_keys))
 
     return findings
 

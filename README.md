@@ -27,8 +27,13 @@ En Git Bash el activate es `source venv/Scripts/activate`.
 python app.py
 ```
 
-Abre http://localhost:5000. El escaneo corre en segundo plano con barra de
-progreso, y al terminar el reporte trae un enlace para descargar el CSV.
+Abre http://localhost:5000. **La interfaz está en inglés**, igual que los
+mensajes de los hallazgos y el CSV, porque el contenido que se revisa y el
+equipo que lo lee trabajan en inglés.
+
+El escaneo corre en segundo plano con barra de progreso. El reporte trae
+filtros por severidad y por tipo de hallazgo, buscador de texto, páginas
+plegables y un enlace para descargar el CSV.
 
 ### Línea de comandos
 

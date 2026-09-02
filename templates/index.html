@@ -7,61 +7,87 @@
 
 {% if glossary_counts.error %}
   <div class="banner error">
-    <strong>El glosario tiene {{ glossary_counts.error }} errores.</strong>
-    El escaneo no va a correr hasta corregirlos.
-    <a href="{{ url_for('glossary_view') }}">Ver el detalle</a>.
+    <strong>The glossary has {{ glossary_counts.error }} errors.</strong>
+    Scans will not run until they are fixed.
+    <a href="{{ url_for('glossary_view') }}">See the details</a>.
   </div>
 {% endif %}
 
+<h1>Scan a site</h1>
+<p class="sub">
+  Every path is checked at <span class="mono">?locale=es_US</span> against its
+  <span class="mono">?locale=en_US</span> counterpart.
+</p>
+
 <div class="panel">
-  <h2>Escanear un sitio</h2>
   <form method="post">
     <div class="field">
-      <label for="base_url">URL del sitio</label>
-      <input type="text" id="base_url" name="base_url" placeholder="midealer.com" required
+      <label for="base_url">Site URL</label>
+      <input type="text" id="base_url" name="base_url" placeholder="mydealer.com" required
              autocomplete="off" autofocus>
-      <div class="hint">
-        Se revisa cada path en <span class="mono">?locale=es_US</span> contra su
-        version <span class="mono">?locale=en_US</span>.
-      </div>
     </div>
 
     <div class="row">
       <div class="field">
-        <label for="max_pages">Maximo de paginas</label>
+        <label for="max_pages">Page limit</label>
         <input type="number" id="max_pages" name="max_pages" value="10" min="0">
-        <div class="hint">0 = sin limite. Cada pagina son ~2 segundos.</div>
+        <div class="hint">0 means no limit. Each page takes about 2 seconds.</div>
+      </div>
+      <div class="field">
+        <label for="paths">Specific paths <span class="faint">— optional</span></label>
+        <textarea id="paths" name="paths" rows="3"
+                  placeholder="/new-inventory/&#10;/service/&#10;/specials/"></textarea>
+        <div class="hint">One per line. Leave empty to take them from the homepage navigation.</div>
       </div>
     </div>
 
-    <div class="field">
-      <label for="paths">Paths especificos <span class="muted">(opcional)</span></label>
-      <textarea id="paths" name="paths" rows="4"
-                placeholder="/inventario-nuevo/&#10;/servicio/&#10;/ofertas/"></textarea>
-      <div class="hint">Uno por linea. Si lo dejas vacio se sacan de la navegacion de la portada.</div>
-    </div>
-
-    <button type="submit">Escanear</button>
+    <button type="submit">Run scan</button>
   </form>
 </div>
 
 <div class="panel">
-  <h2>Que se verifica</h2>
+  <h2>What gets checked</h2>
   <div class="scroll">
     <table>
-      <tr><th>Check</th><th>Que detecta</th></tr>
-      <tr><td>Labels rotos</td><td>Claves internas del CMS visibles en la pagina, placeholders sin resolver</td></tr>
-      <tr><td>Traduccion</td><td>El termino en español contra el glosario oficial</td></tr>
-      <tr><td>Contenido migrado</td><td>Texto que sigue en ingles, y contenido que existe en EN pero no en ES</td></tr>
-      <tr><td>Mayusculas</td><td>Que el patron de capitalizacion siga al de la pagina inglesa</td></tr>
-      <tr><td>Caracteres</td><td>Mojibake, entidades HTML visibles, acentos perdidos</td></tr>
-      <tr><td>Unidades</td><td>Que millas y kilometros no cambien de unidad sin convertir el valor</td></tr>
+      <tr><th style="width:190px">Check</th><th>What it catches</th></tr>
+      <tr>
+        <td>Broken labels</td>
+        <td>Internal CMS keys leaking onto the page, unresolved placeholders, <span class="mono">undefined</span> / <span class="mono">null</span></td>
+      </tr>
+      <tr>
+        <td>Translation</td>
+        <td>The Spanish term against the official glossary</td>
+      </tr>
+      <tr>
+        <td>Migrated content</td>
+        <td>Text still in English, and content that exists in EN but not in ES</td>
+      </tr>
+      <tr>
+        <td>Capitalization</td>
+        <td>That the casing pattern follows the English page</td>
+      </tr>
+      <tr>
+        <td>Characters</td>
+        <td>Mojibake, HTML entities showing as literal text, dropped accents</td>
+      </tr>
+      <tr>
+        <td>Units</td>
+        <td>That miles and kilometers do not swap without converting the value</td>
+      </tr>
+      <tr>
+        <td>Duplicates</td>
+        <td>The same term twice on one page, one translated and one not</td>
+      </tr>
+      <tr>
+        <td>Popups</td>
+        <td>That the English popups exist in Spanish, with their titles and content</td>
+      </tr>
     </table>
   </div>
-  <p class="hint" style="margin-top:14px">
-    Glosario cargado: <strong>{{ glossary|length }}</strong> terminos,
-    <strong>{{ glossary.char_rules|length }}</strong> reglas de caracter,
-    <strong>{{ glossary.pending|length }}</strong> pendientes de traduccion.
+  <p class="hint" style="margin-top:16px">
+    Glossary loaded: <strong>{{ glossary|length }}</strong> terms,
+    <strong>{{ glossary.char_rules|length }}</strong> character rules,
+    <strong>{{ glossary.pending|length }}</strong> pending translation.
   </p>
 </div>
 

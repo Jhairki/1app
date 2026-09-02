@@ -39,13 +39,13 @@ COMPATIBLE = {
 }
 
 LABELS = {
-    UPPER: "TODO EN MAYUSCULAS",
-    LOWER: "todo en minusculas",
+    UPPER: "ALL CAPS",
+    LOWER: "all lowercase",
     TITLE: "Title Case",
     SENTENCE: "Sentence case",
-    CAPITALIZED: "Inicial Mayuscula",
-    MIXED: "mixto",
-    NONE: "sin letras",
+    CAPITALIZED: "Capitalized",
+    MIXED: "mixed",
+    NONE: "no letters",
 }
 
 

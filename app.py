@@ -38,30 +38,30 @@ JOBS_LOCK = threading.Lock()
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 
 VERDICT_LABELS = {
-    "broken_key": "Clave interna del CMS",
-    "broken_key_source": "Clave rota tambien en ingles",
-    "html_entity": "Entidad HTML visible",
-    "mojibake": "Caracter corrupto",
-    "lost_char": "Caracter perdido",
-    "untranslated": "Sin traducir",
-    "off_glossary": "Fuera de glosario",
-    "near_miss": "Casi correcto",
-    "case_mismatch": "Mayusculas distintas al ingles",
-    "accepted_variant": "Variante aceptada",
-    "unknown_term": "Termino nuevo",
-    "proper_noun_altered": "Nombre propio alterado",
-    "duplicate_term": "Termino duplicado en la pagina",
-    "missing": "Contenido faltante",
-    "locale_not_applied": "El sitio ignoro el locale",
-    "popup_missing": "Popup que no se migro",
-    "popup_extra": "Popup solo en español",
-    "popup_broken": "Popup que no abre en español",
-    "popup_broken_source": "Popup roto tambien en ingles",
-    "popup_unverified": "Popup sin verificar",
-    "unit_not_converted": "Unidad sin convertir",
-    "unit_mislabeled": "Unidad mal etiquetada",
-    "unit_unverifiable": "Unidad no verificable",
-    "style_violation": "Regla de estilo",
+    "broken_key": "CMS key",
+    "broken_key_source": "CMS key broken in English too",
+    "html_entity": "HTML entity",
+    "mojibake": "Corrupt character",
+    "lost_char": "Lost character",
+    "untranslated": "Untranslated",
+    "off_glossary": "Off glossary",
+    "near_miss": "Near miss",
+    "case_mismatch": "Capitalization",
+    "accepted_variant": "Accepted variant",
+    "unknown_term": "New term",
+    "proper_noun_altered": "Proper noun altered",
+    "duplicate_term": "Duplicate on page",
+    "missing": "Missing content",
+    "locale_not_applied": "Locale ignored",
+    "popup_missing": "Popup not migrated",
+    "popup_extra": "Popup only in Spanish",
+    "popup_broken": "Popup does not open in Spanish",
+    "popup_broken_source": "Popup broken in English too",
+    "popup_unverified": "Popup unverified",
+    "unit_not_converted": "Unit not converted",
+    "unit_mislabeled": "Unit mislabeled",
+    "unit_unverifiable": "Unit unverifiable",
+    "style_violation": "Style rule",
 }
 
 
@@ -92,7 +92,7 @@ def _run_scan(job_id: str, base_url: str, paths, max_pages: int) -> None:
         else:
             _update(job_id, state="done", result=result)
     except Exception as exc:
-        logger.exception("El escaneo fallo para %s", base_url)
+        logger.exception("Scan failed for %s", base_url)
         _update(job_id, state="failed", error=str(exc))
 
 
@@ -106,9 +106,10 @@ def index():
         if not base_url:
             return render_template(
                 "index.html",
-                error="Escribe la URL del sitio.",
+                error="Enter the site URL.",
                 glossary=glossary,
                 glossary_counts=counts,
+                active="scan",
             )
 
         raw_paths = (request.form.get("paths") or "").strip()
@@ -140,7 +141,8 @@ def index():
 
         return redirect(url_for("job", job_id=job_id))
 
-    return render_template("index.html", glossary=glossary, glossary_counts=counts)
+    return render_template("index.html", glossary=glossary, glossary_counts=counts,
+                           active="scan")
 
 
 @app.route("/scan/<job_id>")
@@ -152,10 +154,11 @@ def job(job_id: str):
         return redirect(url_for("index"))
 
     if data["state"] == "running":
-        return render_template("progress.html", job_id=job_id, job=data)
+        return render_template("progress.html", job_id=job_id, job=data, active="scan")
 
     if data["state"] == "failed":
-        return render_template("report.html", job=data, result=None, error=data["error"])
+        return render_template("report.html", job=data, result=None,
+                               error=data["error"], active="scan")
 
     result = data["result"]
     findings = sorted(
@@ -172,6 +175,7 @@ def job(job_id: str):
         glossary_errors=[i for i in data["glossary_issues"] if i.level is Level.ERROR],
         por_path=[r for r in by_path(result) if r["errores"] or r["advertencias"] or r["error"]],
         job_id=job_id,
+        active="scan",
         error=None,
     )
 
@@ -218,6 +222,7 @@ def glossary_view():
         glossary=glossary,
         issues=sorted(issues, key=lambda i: SEVERITY_ORDER.get(i.level.value, 3)),
         counts=summarize(issues),
+        active="glossary",
     )
 
 

@@ -125,7 +125,7 @@ def scan_page(base_url: str, path: str, glossary: Glossary, checker: TermChecker
 
     spanish_html = fetch_html(session, spanish_url)
     if spanish_html is None:
-        result.error = f"No se pudo traer la pagina en español: {spanish_url}"
+        result.error = f"Could not fetch the Spanish page: {spanish_url}"
         return result
 
     polite_pause()
@@ -184,11 +184,11 @@ def scan_page(base_url: str, path: str, glossary: Glossary, checker: TermChecker
                 path=path,
                 auto_fixable=False,
                 message=(
-                    "La pagina en español es identica a la inglesa: el sitio ignoro "
-                    "?locale=es_US. No se corrieron los checks de traduccion porque "
-                    "marcarian todo el contenido, con una sola causa de fondo."
+                    "The Spanish page is identical to the English one: the site ignored "
+                    "?locale=es_US. Translation checks were skipped because they would "
+                    "flag every piece of content over a single root cause."
                 ),
-                context="revisa como cambia de idioma este sitio",
+                context="check how this site switches language",
             )
         )
 
@@ -215,8 +215,8 @@ def scan_page(base_url: str, path: str, glossary: Glossary, checker: TermChecker
                             path=path,
                             auto_fixable=False,
                             message=(
-                                f"Clave del CMS sin traducir. En ingles este mismo "
-                                f"elemento dice {english_unit.text!r}."
+                                f"Untranslated CMS key. In English this same element "
+                                f"reads {english_unit.text!r}."
                             ),
                             context=spanish_unit.describe(),
                             meta={"english": english_unit.text},
@@ -254,7 +254,7 @@ def scan_page(base_url: str, path: str, glossary: Glossary, checker: TermChecker
                     path=path,
                     auto_fixable=False,
                     message=(
-                        f"Existe en la pagina en ingles pero no en la española: "
+                        f"Exists on the English page but not on the Spanish one: "
                         f"{unit.text!r} ({unit.describe()})."
                     ),
                     context=unit.describe(),
@@ -314,13 +314,13 @@ def scan_site(base_url: str, paths=None, glossary: Glossary = None,
     if paths is None:
         home_html = fetch_html(session, with_locale(base_url, "/", SPANISH))
         if home_html is None:
-            result.error = f"No se pudo traer la portada de {base_url}"
+            result.error = f"Could not fetch the homepage of {base_url}"
             return result
         paths = find_navigation_paths(home_html, base_url)
         if not paths:
             result.error = (
-                "No se encontro navegacion en la portada "
-                "(se busco div.header-navigation y luego <nav>)."
+                "No navigation found on the homepage "
+                "(looked for div.header-navigation, then <nav>)."
             )
             return result
         if "/" not in paths:

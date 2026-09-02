@@ -24,7 +24,7 @@ FAMILIAS = {
     "popover": "popover",
     "tooltip": "tooltip",
     "modal": "modal",
-    "dialog": "dialogo",
+    "dialog": "dialog",
 }
 
 
@@ -57,9 +57,9 @@ def inventory(units) -> dict[str, dict]:
 def _describe(clave: str, datos: dict) -> str:
     partes = [f"{datos['familia']} {clave}"]
     if datos["disparador"]:
-        partes.append(f"disparador {datos['disparador']!r}")
+        partes.append(f"trigger {datos['disparador']!r}")
     if datos["titulo"]:
-        partes.append(f"titulo {datos['titulo']!r}")
+        partes.append(f"title {datos['titulo']!r}")
     return " | ".join(partes)
 
 
@@ -88,10 +88,10 @@ def check_popups(spanish_units, english_units, path: str = "") -> list[Finding]:
                 path=path,
                 auto_fixable=False,
                 message=(
-                    f"La pagina en ingles tiene {len(en)} popups ({detalle}) y la "
-                    "española ninguno. No se migro ninguno."
+                    f"The English page has {len(en)} popups ({detalle}) and the Spanish "
+                    "page has none. Not a single one was migrated."
                 ),
-                context="inventario de popups",
+                context="popup inventory",
                 meta={"en": len(en), "es": 0, "familias": familias},
             )
         ]
@@ -109,7 +109,7 @@ def check_popups(spanish_units, english_units, path: str = "") -> list[Finding]:
                 path=path,
                 auto_fixable=False,
                 message=(
-                    f"Este {datos['familia']} existe en ingles y no en español: "
+                    f"This {datos['familia']} exists in English but not in Spanish: "
                     f"{_describe(clave, datos)}."
                 ),
                 context=f"popup {clave}",
@@ -129,9 +129,9 @@ def check_popups(spanish_units, english_units, path: str = "") -> list[Finding]:
                 path=path,
                 auto_fixable=False,
                 message=(
-                    f"Este {datos['familia']} esta en español y no en ingles: "
-                    f"{_describe(clave, datos)}. Puede ser que el CMS le haya dado "
-                    "otra clave, no necesariamente que sobre."
+                    f"This {datos['familia']} is in Spanish but not in English: "
+                    f"{_describe(clave, datos)}. The CMS may have given it a "
+                    "different key, not necessarily that it is redundant."
                 ),
                 context=f"popup {clave}",
                 meta={"familia": datos["familia"], **datos},
