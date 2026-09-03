@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from qa.browser import check_popups_live
 from qa.bugreport import group_repeated
 from qa.report_html import write as write_html
+from qa.screenshots import collect as collect_shots
 from qa.engine import scan_site
 from qa.export import by_path, write_csv
 from qa.findings import Severity
@@ -137,6 +138,8 @@ def main() -> int:
                         help="Include terms missing from the glossary (very noisy)")
     parser.add_argument("--skip-glossary-check", action="store_true",
                         help="Scan even if the glossary has errors")
+    parser.add_argument("--shots", action="store_true",
+                        help="Attach a cropped screenshot of each bug to the HTML report (slow)")
     parser.add_argument("--html", dest="html_path",
                         help="Save the report in the team Test & Feedback format")
     parser.add_argument("--bugs", action="store_true",
@@ -192,8 +195,16 @@ def main() -> int:
     if args.bugs:
         print_bugs(result, device)
 
+    shots = None
+    if args.html_path and args.shots:
+        print()
+        print("Capturing screenshots (this takes a while)...")
+        shots = collect_shots(result, device)
+        print(f"  {sum(len(v) for v in shots.values())} screenshots captured")
+
     if args.html_path:
-        bugs = write_html(result, args.html_path, device, "Localization QA Report")
+        bugs = write_html(result, args.html_path, device,
+                          "Localization QA Report", shots=shots)
         print()
         print(f"HTML report saved to {args.html_path} ({bugs} bugs)")
 

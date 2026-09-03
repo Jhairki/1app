@@ -101,6 +101,7 @@ Field 1 | Field 2 | Field 3 | Field 4
 |---|---|
 | `--bugs` | Imprimir los hallazgos en ese formato |
 | `--html reporte.html` | Reporte con el formato de Test & Feedback: cabecera, tabla de contenido y un bug por hallazgo |
+| `--shots` | Adjuntar al reporte una captura recortada de cada bug, con el elemento resaltado |
 | `--mobile` | Pide las páginas como un teléfono y reporta el Field 1 como `M` |
 
 **Un bug que sale en varias páginas se reporta una sola vez**, con la lista de
@@ -109,6 +110,20 @@ el documento de proceso. En un sitio real eso baja 62 hallazgos a 2 bugs.
 
 El mapeo de veredicto a los campos 2 y 3 está en [qa/bugreport.py](qa/bugreport.py),
 en una tabla de una línea por veredicto, fácil de corregir.
+
+#### Las capturas
+
+`--shots` abre un navegador, ubica el elemento de cada hallazgo, le dibuja un
+contorno rojo y **recorta esa región** — no fotografía la página entera. Cuando
+hay las dos versiones, captura ambas y quedan lado a lado en el reporte.
+
+El recorte es por espacio: un reporte de Test & Feedback pesa ~700 KB por
+captura de página completa, y estas pesan **14 KB**. Once bugs con 18 capturas
+dan un archivo de 391 KB, que se sigue pudiendo mandar por mail.
+
+Requiere Playwright y agrega un par de minutos. Los elementos que no se pueden
+ubicar quedan sin captura — por ahora se prefiere ninguna antes que una que no
+muestre el elemento.
 
 ### Validar el glosario
 

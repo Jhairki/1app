@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from qa.bugreport import group_repeated
 from qa.report_html import write as write_html
+from qa.screenshots import collect as collect_shots
 from qa.export import by_path, write_csv
 from qa.glossary import load_glossary
 from qa.browser import check_popups_live
@@ -151,6 +152,8 @@ def main() -> int:
     parser.add_argument("--json", dest="json_path", help="Save the report as JSON")
     parser.add_argument("--popups", action="store_true",
                         help="Use a real browser to check popups open on both sites (slow)")
+    parser.add_argument("--shots", action="store_true",
+                        help="Attach a cropped screenshot of each bug to the HTML report (slow)")
     parser.add_argument("--html", dest="html_path",
                         help="Save the report in the team Test & Feedback format")
     parser.add_argument("--bugs", action="store_true",
@@ -198,8 +201,16 @@ def main() -> int:
     if args.bugs:
         print_bugs(result, device)
 
+    shots = None
+    if args.html_path and args.shots:
+        print()
+        print("Capturing screenshots (this takes a while)...")
+        shots = collect_shots(result, device)
+        print(f"  {sum(len(v) for v in shots.values())} screenshots captured")
+
     if args.html_path:
-        bugs = write_html(result, args.html_path, device, "Stare and Compare Report")
+        bugs = write_html(result, args.html_path, device,
+                          "Stare and Compare Report", shots=shots)
         print()
         print(f"HTML report saved to {args.html_path} ({bugs} bugs)")
 

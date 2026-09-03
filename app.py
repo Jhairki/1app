@@ -34,6 +34,7 @@ from qa.export import by_path, to_csv
 from qa.glossary import Level, load_glossary, summarize
 from qa.migration import compare_sites
 from qa.report_html import build as build_html
+from qa.screenshots import collect as collect_shots
 
 logging.basicConfig(
     level=logging.INFO,
@@ -111,6 +112,8 @@ def _nuevo_job(kind: str, titulo: str, total: int, mobile: bool) -> str:
             "result": None,
             "error": "",
             "glossary_issues": [],
+            "shots": None,
+            "want_shots": False,
         }
     return job_id
 
@@ -124,8 +127,22 @@ def _run(job_id: str, funcion) -> None:
         result = funcion(on_progress)
         if result.error:
             _update(job_id, state="failed", error=result.error)
-        else:
-            _update(job_id, state="done", result=result)
+            return
+
+        with JOBS_LOCK:
+            quiere = JOBS.get(job_id, {}).get("want_shots")
+            device = JOBS.get(job_id, {}).get("device", "D")
+
+        shots = None
+        if quiere:
+            _update(job_id, current="capturing screenshots...")
+            try:
+                shots = collect_shots(result, device)
+            except Exception as exc:
+                # Sin capturas el reporte sale igual; no vale colgar el trabajo
+                logger.warning("Screenshots failed: %s", exc)
+
+        _update(job_id, state="done", result=result, shots=shots)
     except Exception as exc:
         logger.exception("Job %s failed", job_id)
         _update(job_id, state="failed", error=str(exc))
@@ -167,7 +184,8 @@ def localization():
         mobile = bool(request.form.get("mobile"))
 
         job_id = _nuevo_job("localization", base_url, max_pages or 0, mobile)
-        _update(job_id, glossary_issues=issues)
+        _update(job_id, glossary_issues=issues,
+                want_shots=bool(request.form.get("shots")))
 
         threading.Thread(
             target=_run,
@@ -206,6 +224,7 @@ def compare():
         glossary, _ = load_glossary()
 
         job_id = _nuevo_job("compare", f"{source} → {copy_site}", len(paths), mobile)
+        _update(job_id, want_shots=bool(request.form.get("shots")))
         threading.Thread(
             target=_run,
             args=(job_id, lambda cb: compare_sites(
@@ -284,7 +303,7 @@ def job_html(job_id: str):
 
     contenido = build_html(data["result"], data["device"],
                            TITULOS.get(data["kind"], "QA Report"),
-                           started=data["started"])
+                           started=data["started"], shots=data.get("shots"))
     return Response(contenido, mimetype="text/html; charset=utf-8")
 
 

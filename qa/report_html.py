@@ -43,9 +43,10 @@ def _url_de(result, paths: list[str]) -> str:
 
 
 def build(result, device: str = "D", title: str = "QA Report",
-          started: datetime = None) -> str:
+          started: datetime = None, shots: dict = None) -> str:
     """Arma el HTML completo del reporte."""
     grupos = group_repeated(result, device)
+    shots = shots or {}
     ahora = datetime.now()
     started = started or ahora
     resumen = result.summary()
@@ -81,6 +82,18 @@ def build(result, device: str = "D", title: str = "QA Report",
         if len(g["paths"]) > 25:
             paths_html += f'<li class="muted">…and {len(g["paths"]) - 25} more</li>'
 
+        imagenes = shots.get(g["bug"], [])
+        shots_html = ""
+        if imagenes:
+            tarjetas = "".join(
+                f'<figure class="shot">'
+                f'<figcaption>{_e(img["label"])}</figcaption>'
+                f'<img src="{img["src"]}" alt="{_e(img["label"])}" loading="lazy">'
+                f'</figure>'
+                for img in imagenes
+            )
+            shots_html = f'<div class="label">Screenshots</div><div class="shots">{tarjetas}</div>'
+
         repetido = ""
         if len(g["paths"]) > 1:
             repetido = (
@@ -105,6 +118,7 @@ def build(result, device: str = "D", title: str = "QA Report",
         {repetido}
         <div class="label">Pages</div>
         <ul class="paths">{paths_html}</ul>
+        {shots_html}
         {f'<div class="label">Source</div><a class="src" href="{_e(url)}" target="_blank" rel="noopener">{_e(url)}</a>' if url else ''}
       </div>
     </div>''')
@@ -191,6 +205,18 @@ def build(result, device: str = "D", title: str = "QA Report",
     background: #fdf6e9; border-left: 3px solid #c07800;
     padding: 10px 14px; margin: 0 0 14px; font-size: 13px;
   }}
+  .shots {{
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px; margin-bottom: 4px;
+  }}
+  .shot {{ margin: 0; }}
+  .shot figcaption {{
+    font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+    color: #605e5c; font-weight: 600; margin-bottom: 5px;
+  }}
+  .shot img {{
+    max-width: 100%; border: 1px solid #edebe9; border-radius: 2px; display: block;
+  }}
   .muted {{ color: #605e5c; }}
   footer {{ margin-top: 40px; color: #a19f9d; font-size: 12px; }}
   @media (prefers-color-scheme: dark) {{
@@ -203,6 +229,8 @@ def build(result, device: str = "D", title: str = "QA Report",
     h2.section {{ border-color: #3b3a39; }}
     .sub, .statName, .bugDate, .tocPages, .label, .muted {{ color: #a19f9d; }}
     .repeated {{ background: #2b2415; }}
+    .shot img {{ border-color: #3b3a39; }}
+    .shot figcaption {{ color: #a19f9d; }}
   }}
 </style>
 </head>
@@ -242,9 +270,10 @@ def build(result, device: str = "D", title: str = "QA Report",
 '''
 
 
-def write(result, path, device: str = "D", title: str = "QA Report") -> int:
+def write(result, path, device: str = "D", title: str = "QA Report",
+          shots: dict = None) -> int:
     """Guarda el reporte y devuelve cuantos bugs quedaron."""
-    contenido = build(result, device, title)
+    contenido = build(result, device, title, shots=shots)
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(contenido)
     return len(group_repeated(result, device))
