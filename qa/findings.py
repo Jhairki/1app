@@ -38,6 +38,12 @@ class Verdict(str, Enum):
     UNIT_NOT_CONVERTED = "unit_not_converted"
     UNIT_MISLABELED = "unit_mislabeled"
     UNIT_UNVERIFIABLE = "unit_unverifiable"
+    # Stare and Compare: sitio original contra sitio migrado
+    TEXT_CHANGED = "text_changed"
+    CONTENT_MISSING = "content_missing"
+    CONTENT_EXTRA = "content_extra"
+    SOURCE_LEAK = "source_leak"
+    COUNT_MISMATCH = "count_mismatch"
     # Estilo
     STYLE_VIOLATION = "style_violation"
     OK = "ok"

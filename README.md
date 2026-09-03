@@ -56,6 +56,37 @@ Sale con código 1 si hay errores, para encadenarlo en CI.
 **En Git Bash**, si pasás `--paths /` solo, antepone `MSYS_NO_PATHCONV=1` — si no,
 Git Bash convierte la barra en una ruta de Windows.
 
+### Stare and Compare — sitio migrado contra el original
+
+```bash
+python compare.py --source oldsite.com --copy new.cms.dealer.com --paths / /service/
+```
+
+Programa **aparte**, con lógica contraria a la de `scan.py`: acá los dos textos
+deben ser **iguales**, no se traduce nada. Cualquier diferencia es sospechosa.
+
+| Opción | Para qué |
+|---|---|
+| `--source` | Dominio del sitio original, del que se copia |
+| `--copy` | Dominio del sitio migrado, normalmente el del CMS |
+| `--paths / /service/` | Los paths a comparar, los mismos en los dos sitios |
+| `--paths-file paths.txt` | Un path por línea, para lotes grandes |
+| `--csv` · `--json` | Exportar el reporte |
+
+Qué detecta:
+
+| Check | Qué encuentra |
+|---|---|
+| Referencias al sitio viejo | Links e imágenes que siguen apuntando al origen. **El bug clásico**: la página se ve perfecta hasta que apagan el sitio viejo |
+| Texto alterado | El elemento existe en los dos pero el texto cambió |
+| Contenido perdido | Está en el original y no llegó a la copia |
+| Contenido de más | Está en la copia y no en el original |
+| Diferencia de cantidad | Una sección entera que falta, aunque los hallazgos sueltos no lo dejen ver |
+| Claves, caracteres, popups | Los mismos checks de `scan.py`, que aplican igual |
+
+No usa el glosario para juzgar traducciones — solo aprovecha sus reglas de
+caracteres para detectar mojibake introducido al copiar.
+
 ### Validar el glosario
 
 ```bash
@@ -126,8 +157,9 @@ Se leen con `utf-8-sig` porque Excel escribe BOM.
 ## Estructura
 
 ```
-app.py                 interfaz web
-scan.py                CLI
+app.py                 interfaz web del QA de localizacion
+scan.py                CLI del QA de localizacion  (EN -> ES, contra el glosario)
+compare.py             CLI del Stare and Compare   (original -> copia, mismo idioma)
 validate_glossary.py   validador del glosario
 qa/
   glossary.py          carga y valida data/
@@ -137,8 +169,9 @@ qa/
   extract.py           extracción y emparejamiento ES↔EN
   engine.py            orquesta los checks
   findings.py          modelo de hallazgos
-  export.py            CSV
+  export.py            CSV, comun a los dos programas
   browser.py           verificacion de popups con Playwright
+  migration.py         motor del Stare and Compare
   checks/              los checks
 tests/
 data/

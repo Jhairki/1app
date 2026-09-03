@@ -18,8 +18,8 @@ COLUMNS = [
     "fix",
     "message",
     "context",
-    "url_es",
-    "url_en",
+    "url_checked",
+    "url_reference",
 ]
 
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
@@ -40,8 +40,11 @@ def rows(result):
                 "fix": finding.fixed,
                 "message": finding.message,
                 "context": finding.context,
-                "url_es": page.spanish_url,
-                "url_en": page.english_url,
+                # Neutro a proposito: sirve para los dos programas.
+                # Localizacion: revisada = pagina ES, referencia = pagina EN.
+                # Migracion:    revisada = sitio nuevo, referencia = sitio viejo.
+                "url_checked": getattr(page, "spanish_url", None) or getattr(page, "copy_url", ""),
+                "url_reference": getattr(page, "english_url", None) or getattr(page, "source_url", ""),
             }
 
 
