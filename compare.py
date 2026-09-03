@@ -145,8 +145,11 @@ def print_report(result) -> None:
 
     print()
     print("=" * 88)
-    if summary["errors"]:
-        print(f"RESULT: {summary['errors']} errors. The migration is not faithful yet.")
+    if summary["pages_failed"] and not summary["pages_scanned"]:
+        print(f"RESULT: could not compare — all {summary['pages_failed']} pages failed to load.")
+    elif summary["errors"] or summary["pages_failed"]:
+        extra = f" ({summary['pages_failed']} pages could not be loaded)" if summary["pages_failed"] else ""
+        print(f"RESULT: {summary['errors']} errors{extra}. The migration is not faithful yet.")
     else:
         print("RESULT: no errors. The copy matches the source.")
 
@@ -205,6 +208,10 @@ def main() -> int:
                         help="Print the findings in the team bug-report format")
     parser.add_argument("--mobile", action="store_true",
                         help="Request the pages as a phone would, and report Field 1 as M")
+    parser.add_argument("--source-dir",
+                        help="Read the source pages from saved .html files in this directory "
+                             "instead of fetching them, for when the source site blocks "
+                             "automated requests. See extension/README.md")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -221,17 +228,22 @@ def main() -> int:
         print(f"--paths and --copy-paths must have the same number of entries "
               f"({len(paths)} vs {len(copy_paths)}).")
         return 1
+    if args.source_dir and not Path(args.source_dir).is_dir():
+        print(f"--source-dir is not a directory: {args.source_dir}")
+        return 1
 
     # El glosario no se valida aca: en una migracion no se traduce. Solo se
     # aprovechan sus reglas de caracteres para detectar mojibake introducido.
     glossary, _ = load_glossary()
 
+    if args.source_dir:
+        print(f"Reading the source pages from {args.source_dir} instead of fetching them.")
     if args.links:
         print("Checking links against both sites (this takes a while)...")
 
     result = compare_sites(args.source, args.copy_site, paths, copy_paths=copy_paths,
                            char_rules=glossary.char_rules, mobile=args.mobile,
-                           verify_links=args.links)
+                           verify_links=args.links, source_dir=args.source_dir)
     if result.error:
         print(f"Comparison failed: {result.error}")
         return 1
@@ -294,7 +306,8 @@ def main() -> int:
         )
         print(f"JSON saved to {args.json_path}")
 
-    return 1 if result.summary()["errors"] else 0
+    summary = result.summary()
+    return 1 if summary["errors"] or summary["pages_failed"] else 0
 
 
 if __name__ == "__main__":

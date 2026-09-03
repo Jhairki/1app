@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "QA Page Exporter",
+  "version": "1.0",
+  "description": "Guarda el HTML de la pagina actual para el Stare and Compare, para cuando el sitio original bloquea pedidos automatizados.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "downloads"]
+}

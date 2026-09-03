@@ -8,6 +8,7 @@ viejo, y daño de codificacion introducido al copiar.
 """
 
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -66,9 +67,18 @@ def main() -> int:
     glossary, _ = load_glossary()
 
     paginas = {ORIGEN: ORIGINAL, COPIA: MIGRADA}
-    migration.fetch_html = lambda s, url: next(
-        (html for base, html in paginas.items() if url.startswith(base)), None
-    )
+
+    def _fetch_de_prueba(s, url):
+        # El match mas largo gana -- si no, un path especifico como
+        # ".../service.htm" cae en la entrada generica del dominio
+        # (".../"), que tambien es un prefijo valido pero no la pagina que se
+        # quiere.
+        candidatos = [base for base in paginas if url.startswith(base)]
+        if not candidatos:
+            return None
+        return paginas[max(candidatos, key=len)]
+
+    migration.fetch_html = _fetch_de_prueba
     migration.polite_pause = lambda: None
 
     resultado = migration.compare_sites(ORIGEN, COPIA, ["/"],
@@ -212,6 +222,32 @@ def main() -> int:
                                         char_rules=glossary.char_rules)
     ok &= revisar("informa el error en vez de comparar como pueda",
                   bool(con_error.error) and not con_error.pages, con_error.error)
+
+    print("\n7d. Original leido de un archivo guardado a mano (--source-dir)")
+    with tempfile.TemporaryDirectory() as carpeta:
+        (Path(carpeta) / migration.local_filename("/service/")).write_text(
+            ORIGINAL, encoding="utf-8")
+
+        con_carpeta = migration.compare_sites(
+            ORIGEN, COPIA, ["/service/"], copy_paths=["/service.htm"],
+            char_rules=glossary.char_rules, source_dir=carpeta,
+        )
+        ok &= revisar("compara igual que por red, pero leyendo el archivo",
+                      not con_carpeta.error and con_carpeta.pages
+                      and not con_carpeta.pages[0].error, con_carpeta.error)
+        cambios_carpeta = [f for f in con_carpeta.findings if f.verdict == Verdict.TEXT_CHANGED]
+        ok &= revisar("detecta el mismo bug que detecta pidiendolo por red",
+                      any(f.found == "Our Service" and f.expected == "Our Services"
+                          for f in cambios_carpeta),
+                      "; ".join(f"{f.found!r}->{f.expected!r}" for f in cambios_carpeta))
+
+        sin_archivo = migration.compare_sites(
+            ORIGEN, COPIA, ["/no-existe/"], copy_paths=["/no-existe.htm"],
+            char_rules=glossary.char_rules, source_dir=carpeta,
+        )
+        ok &= revisar("avisa cuando falta el archivo, en vez de fallar en silencio",
+                      sin_archivo.pages and "Source file not found" in sin_archivo.pages[0].error,
+                      sin_archivo.pages[0].error if sin_archivo.pages else "sin paginas")
 
     print("\n8. Sin --links no se pide nada de eso")
     sin_links = migration.compare_sites(ORIGEN, COPIA, ["/"], char_rules=glossary.char_rules)

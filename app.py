@@ -213,6 +213,7 @@ def compare():
         paths = [p.strip() for p in raw.splitlines() if p.strip()]
         raw_copy = (request.form.get("copy_paths") or "").strip()
         copy_paths = [p.strip() for p in raw_copy.splitlines() if p.strip()] or None
+        source_dir = (request.form.get("source_dir") or "").strip() or None
 
         falta = None
         if not source or not copy_site:
@@ -222,6 +223,8 @@ def compare():
         elif copy_paths is not None and len(copy_paths) != len(paths):
             falta = (f"Source paths and migrated-site paths must have the same number of "
                      f"lines ({len(paths)} vs {len(copy_paths)}).")
+        elif source_dir and not Path(source_dir).is_dir():
+            falta = f"Not a directory on this machine: {source_dir}"
         if falta:
             return render_template("compare.html", error=falta, active="compare")
 
@@ -236,7 +239,7 @@ def compare():
             target=_run,
             args=(job_id, lambda cb: compare_sites(
                 source, copy_site, paths, copy_paths=copy_paths, char_rules=glossary.char_rules,
-                on_progress=cb, mobile=mobile, verify_links=verify_links)),
+                on_progress=cb, mobile=mobile, verify_links=verify_links, source_dir=source_dir)),
             daemon=True,
         ).start()
         return redirect(url_for("job", job_id=job_id))

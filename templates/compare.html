@@ -52,6 +52,19 @@
       </div>
     </div>
 
+    <div class="field">
+      <label for="source_dir">Read source pages from a folder <span class="faint">(optional)</span></label>
+      <input type="text" id="source_dir" name="source_dir" autocomplete="off"
+             placeholder="C:\Users\you\Downloads\saved-pages">
+      <div class="hint">
+        For when the source site blocks automated requests (an anti-bot challenge, for
+        example). Leave this empty to fetch the source pages normally. Otherwise, browse
+        each source page yourself and save its HTML with the
+        <a href="https://github.com/Jhairki/1app/tree/main/extension" target="_blank" rel="noopener">QA
+        Page Exporter</a> extension into this folder — a path on the machine running this app.
+      </div>
+    </div>
+
     <label style="display:flex;align-items:center;gap:9px;font-weight:500;margin-bottom:18px">
       <input type="checkbox" name="mobile" value="1" style="width:auto">
       <span>Check the mobile version <span class="faint">— reports Field 1 as M</span></span>

@@ -20,6 +20,7 @@ y aca no se traduce nada.
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
@@ -92,9 +93,20 @@ class MigrationResult:
         }
 
 
+def local_filename(path: str) -> str:
+    """Nombre de archivo esperado para el HTML de un path guardado a mano.
+
+    El mismo algoritmo lo usa extension/popup.js al exportar: si uno cambia,
+    el otro tiene que cambiar igual, o --source-dir no encuentra nada.
+    """
+    limpio = path.strip("/").replace("/", "_")
+    return f"{limpio or 'home'}.html"
+
+
 def compare_page(source_site: str, copy_site: str, source_path: str, copy_path: str,
                  session: requests.Session, char_rules=None,
-                 verify_links: bool = False, link_cache: dict = None) -> PagePair:
+                 verify_links: bool = False, link_cache: dict = None,
+                 source_dir: str = None) -> PagePair:
     """Compara un path del original contra su equivalente en la copia.
 
     source_path y copy_path pueden ser distintos: cada plataforma arma sus
@@ -103,6 +115,10 @@ def compare_page(source_site: str, copy_site: str, source_path: str, copy_path: 
     los dos lados -- eso lo decide quien arma la lista de paths, no esta
     funcion. El path que identifica la pagina en el reporte es el de la
     copia: es el que un QA va a mirar en el CMS.
+
+    source_dir: cuando el sitio original bloquea pedidos automatizados (por
+    ejemplo, un desafio anti-bot), su HTML no se pide por red -- se lee de un
+    archivo guardado a mano (ver extension/), buscado por local_filename().
     """
     source_url = urljoin(source_site, source_path.lstrip("/"))
     copy_url = urljoin(copy_site, copy_path.lstrip("/"))
@@ -113,11 +129,21 @@ def compare_page(source_site: str, copy_site: str, source_path: str, copy_path: 
         result.error = f"Could not fetch the migrated page: {copy_url}"
         return result
 
-    polite_pause()
-    source_html = fetch_html(session, source_url)
-    if source_html is None:
-        result.error = f"Could not fetch the source page: {source_url}"
-        return result
+    if source_dir:
+        archivo = Path(source_dir) / local_filename(source_path)
+        if not archivo.exists():
+            result.error = (
+                f"Source file not found: {archivo}. Save it with the browser "
+                "extension (see extension/README.md) and put it in --source-dir."
+            )
+            return result
+        source_html = archivo.read_text(encoding="utf-8")
+    else:
+        polite_pause()
+        source_html = fetch_html(session, source_url)
+        if source_html is None:
+            result.error = f"Could not fetch the source page: {source_url}"
+            return result
 
     copy_units = extract_units(copy_html, copy_site)
     source_units = extract_units(source_html, source_site)
@@ -184,7 +210,7 @@ def _normalize_path(p: str) -> str:
 
 def compare_sites(source_site: str, copy_site: str, paths, copy_paths=None,
                   char_rules=None, on_progress=None, mobile: bool = False,
-                  verify_links: bool = False) -> MigrationResult:
+                  verify_links: bool = False, source_dir: str = None) -> MigrationResult:
     """Compara una lista de paths entre los dos sitios.
 
     Si copy_paths viene, cada path se empareja por POSICION con el de
@@ -194,6 +220,9 @@ def compare_sites(source_site: str, copy_site: str, paths, copy_paths=None,
     no hay forma de que un solo string sirva para las dos.
 
     Sin copy_paths, se asume el mismo path en los dos lados -- el caso comun.
+
+    Si source_dir viene, el HTML del original no se pide por red -- ver
+    compare_page().
     """
     source_site = normalize_base_url(source_site)
     copy_site = normalize_base_url(copy_site)
@@ -229,7 +258,8 @@ def compare_sites(source_site: str, copy_site: str, paths, copy_paths=None,
             on_progress(index, total, copy_path)
         result.pages.append(compare_page(source_site, copy_site, source_path, copy_path,
                                          session, char_rules,
-                                         verify_links=verify_links, link_cache=link_cache))
+                                         verify_links=verify_links, link_cache=link_cache,
+                                         source_dir=source_dir))
 
     if on_progress is not None:
         on_progress(total, total, "")

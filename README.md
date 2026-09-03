@@ -82,6 +82,7 @@ deben ser **iguales**, no se traduce nada. Cualquier diferencia es sospechosa.
 | `--copy-paths /index.htm /service.htm` | Los paths de la copia, emparejados por posición con `--paths` — solo hace falta cuando las dos plataformas arman las rutas distinto (el live site en `/seccion/`, el CMS en `/seccion.htm`) |
 | `--copy-paths-file copia.txt` | Lo mismo que `--copy-paths`, desde un archivo, un path por línea |
 | `--links` | Verificar que los links internos de la copia resuelvan y lleven al mismo lugar que en el original (lento) |
+| `--source-dir carpeta/` | Leer el HTML del original de archivos guardados a mano en vez de pedirlo por red — ver más abajo |
 | `--csv` · `--json` | Exportar el reporte |
 
 Qué detecta:
@@ -124,6 +125,34 @@ link porque aparece en 8 páginas.
 
 No usa el glosario para juzgar traducciones — solo aprovecha sus reglas de
 caracteres para detectar mojibake introducido al copiar.
+
+#### `--source-dir`: cuando el sitio original bloquea pedidos automatizados
+
+Algunos sitios (por ejemplo, con un desafío anti-bot de Cloudflare) rechazan
+cualquier pedido que no venga de un navegador real. En ese caso `compare.py`
+no puede traer el HTML del original por su cuenta — y **no** se intenta
+sortear el bloqueo (ni con otro User-Agent, ni con Selenium/Playwright, ni
+con una VPN): sigue siendo evadir una protección anti-bot, sin importar la
+técnica.
+
+La alternativa real: **una persona pasa el desafío como cualquier
+visitante**, navegando el sitio en su propio navegador, y guarda el HTML que
+ya vio. Para eso está la extensión de Chrome en [`extension/`](extension/) —
+un botón que descarga el HTML ya cargado de la pestaña activa, con el nombre
+que le corresponde a ese path (ver `extension/README.md`).
+
+Con esos archivos guardados en una carpeta:
+
+```bash
+python compare.py --source oldsite.com --copy new.cms.dealer.com \
+  --paths /service/ /about-us/ \
+  --source-dir ./paginas-guardadas
+```
+
+`--source` sigue siendo obligatorio — identifica el dominio para los links
+"Source" del reporte y para el check de referencias al sitio viejo — pero el
+HTML del original se lee de la carpeta en vez de pedirse por red. Si falta
+el archivo de algún path, se avisa cuál en vez de fallar en silencio.
 
 ### El formato de bugs del equipo
 
@@ -277,6 +306,7 @@ qa/
   checks/              los checks
 tests/
 data/
+extension/             extension de Chrome para guardar HTML a mano (--source-dir)
 ```
 
 ## Notas
