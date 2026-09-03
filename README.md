@@ -77,8 +77,10 @@ deben ser **iguales**, no se traduce nada. Cualquier diferencia es sospechosa.
 |---|---|
 | `--source` | Dominio del sitio original, del que se copia |
 | `--copy` | Dominio del sitio migrado, normalmente el del CMS |
-| `--paths / /service/` | Los paths a comparar, los mismos en los dos sitios |
-| `--paths-file paths.txt` | Un path por línea, para lotes grandes |
+| `--paths / /service/` | Los paths del sitio original (se usan también en la copia, salvo que se dé `--copy-paths`) |
+| `--paths-file paths.txt` | Un path del original por línea, para lotes grandes |
+| `--copy-paths /index.htm /service.htm` | Los paths de la copia, emparejados por posición con `--paths` — solo hace falta cuando las dos plataformas arman las rutas distinto (el live site en `/seccion/`, el CMS en `/seccion.htm`) |
+| `--copy-paths-file copia.txt` | Lo mismo que `--copy-paths`, desde un archivo, un path por línea |
 | `--links` | Verificar que los links internos de la copia resuelvan y lleven al mismo lugar que en el original (lento) |
 | `--csv` · `--json` | Exportar el reporte |
 
