@@ -26,6 +26,18 @@ puede pedir en vivo sin problema.
 4. Repetí para cada página de la lista, y mové todos los `.html` descargados
    a una misma carpeta.
 
+## Lista de paths guardados
+
+Cada vez que guardás una página, la extensión recuerda su path (en orden,
+sin duplicados) para toda esta sesión del navegador. "Copiar paths" copia
+esa lista al portapapeles, un path por línea — lista para pegar directo en
+"Paths on the source site" del formulario web, o en un archivo para
+`--paths-file`. Así no hace falta reconstruir a mano qué paths se guardaron,
+ni adivinarlos a partir del nombre del archivo (que es ambiguo: un `_` ahí
+puede venir de una barra del path o de un guion bajo real).
+
+"Reiniciar lista" la vacía, para arrancar una tanda nueva con otro sitio.
+
 ## Popups en la página
 
 Al abrir el popup, la extensión también busca en la página los mismos

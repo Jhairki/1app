@@ -88,6 +88,10 @@ const estado = document.getElementById("status");
 const listaPopups = document.getElementById("popups");
 const cargandoPopups = document.getElementById("popups-loading");
 const sinPopups = document.getElementById("popups-empty");
+const listaPaths = document.getElementById("lista-paths");
+const contador = document.getElementById("contador");
+const botonCopiar = document.getElementById("copiar");
+const botonReiniciar = document.getElementById("reiniciar");
 
 function mostrar(texto, clase) {
   estado.textContent = texto;
@@ -100,6 +104,36 @@ async function pestañaActiva() {
     throw new Error("No se encontro la pestaña activa.");
   }
   return tab;
+}
+
+// Recuerda, en orden, cada path guardado -- asi despues se puede copiar la
+// lista entera y pegarla en "Paths on the source site" del formulario web,
+// sin tener que reconstruirla a mano ni adivinarla a partir del nombre del
+// archivo (que es ambiguo: un "_" en el nombre puede venir de una barra o de
+// un guion bajo real del path).
+const CLAVE_GUARDADOS = "guardados";
+
+async function obtenerGuardados() {
+  const datos = await chrome.storage.local.get({ [CLAVE_GUARDADOS]: [] });
+  return datos[CLAVE_GUARDADOS];
+}
+
+async function agregarGuardado(path, filename) {
+  const guardados = (await obtenerGuardados()).filter((g) => g.path !== path);
+  guardados.push({ path, filename });
+  await chrome.storage.local.set({ [CLAVE_GUARDADOS]: guardados });
+  return guardados;
+}
+
+function pintarGuardados(guardados) {
+  contador.textContent = guardados.length;
+  listaPaths.innerHTML = "";
+  for (const g of guardados) {
+    const li = document.createElement("li");
+    li.textContent = g.path;
+    li.title = `${g.path} -> ${g.filename}`;
+    listaPaths.appendChild(li);
+  }
 }
 
 boton.addEventListener("click", async () => {
@@ -118,12 +152,34 @@ boton.addEventListener("click", async () => {
     const url = URL.createObjectURL(blob);
 
     await chrome.downloads.download({ url, filename: nombre, saveAs: false });
+    pintarGuardados(await agregarGuardado(result.path, nombre));
     mostrar(`Guardado como ${nombre}`, "ok");
   } catch (err) {
     mostrar("Error: " + err.message, "error");
   } finally {
     boton.disabled = false;
   }
+});
+
+botonCopiar.addEventListener("click", async () => {
+  const guardados = await obtenerGuardados();
+  if (!guardados.length) {
+    mostrar("Todavía no guardaste ninguna página.", "error");
+    return;
+  }
+  const texto = guardados.map((g) => g.path).join("\n");
+  try {
+    await navigator.clipboard.writeText(texto);
+    mostrar(`Copiados ${guardados.length} path(s) al portapapeles`, "ok");
+  } catch (err) {
+    mostrar("No se pudo copiar: " + err.message, "error");
+  }
+});
+
+botonReiniciar.addEventListener("click", async () => {
+  await chrome.storage.local.set({ [CLAVE_GUARDADOS]: [] });
+  pintarGuardados([]);
+  mostrar("Lista reiniciada.");
 });
 
 async function resaltar(tabId, indice) {
@@ -180,4 +236,5 @@ async function cargarPopups() {
   }
 }
 
+obtenerGuardados().then(pintarGuardados);
 cargarPopups();
