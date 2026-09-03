@@ -28,14 +28,27 @@
       </div>
     </div>
 
-    <div class="field">
-      <label for="paths">Paths to compare</label>
-      <textarea id="paths" name="paths" rows="6" required
-                placeholder="/&#10;/service/&#10;/new-inventory/&#10;/about-us/"></textarea>
-      <div class="hint">
-        One per line, the same path on both sites. There is no navigation
-        discovery here: the two sites can have different menus, so you say which
-        pages are equivalent.
+    <div class="row">
+      <div class="field">
+        <label for="paths">Paths on the source site</label>
+        <textarea id="paths" name="paths" rows="6" required
+                  placeholder="/&#10;/service/&#10;/new-inventory/&#10;/about-us/"></textarea>
+        <div class="hint">
+          One per line. There is no navigation discovery here: the two sites
+          can have different menus, so you say which pages are equivalent.
+        </div>
+      </div>
+      <div class="field">
+        <label for="copy_paths">Paths on the migrated site <span class="faint">(optional)</span></label>
+        <textarea id="copy_paths" name="copy_paths" rows="6"
+                  placeholder="/&#10;/service.htm&#10;/new-inventory.htm&#10;/about-us.htm"></textarea>
+        <div class="hint">
+          Only needed when the platforms build URLs differently — a live site
+          in <code>/section/</code> and a CMS in <code>/section.htm</code>, for
+          example. Paired by line with the source paths, so leave blank lines
+          out and keep the same order and count. Leave empty to use the same
+          paths on both sides.
+        </div>
       </div>
     </div>
 

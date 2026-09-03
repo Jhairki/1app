@@ -211,12 +211,17 @@ def compare():
         copy_site = (request.form.get("copy_site") or "").strip()
         raw = (request.form.get("paths") or "").strip()
         paths = [p.strip() for p in raw.splitlines() if p.strip()]
+        raw_copy = (request.form.get("copy_paths") or "").strip()
+        copy_paths = [p.strip() for p in raw_copy.splitlines() if p.strip()] or None
 
         falta = None
         if not source or not copy_site:
             falta = "Enter both the source site and the migrated site."
         elif not paths:
             falta = "Enter at least one path to compare."
+        elif copy_paths is not None and len(copy_paths) != len(paths):
+            falta = (f"Source paths and migrated-site paths must have the same number of "
+                     f"lines ({len(paths)} vs {len(copy_paths)}).")
         if falta:
             return render_template("compare.html", error=falta, active="compare")
 
@@ -230,7 +235,7 @@ def compare():
         threading.Thread(
             target=_run,
             args=(job_id, lambda cb: compare_sites(
-                source, copy_site, paths, char_rules=glossary.char_rules,
+                source, copy_site, paths, copy_paths=copy_paths, char_rules=glossary.char_rules,
                 on_progress=cb, mobile=mobile, verify_links=verify_links)),
             daemon=True,
         ).start()

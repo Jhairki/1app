@@ -2,6 +2,10 @@
 
     python compare.py --source oldsite.com --copy new.cms.dealer.com --paths / /service/
 
+    # Cuando las dos plataformas arman las rutas distinto:
+    python compare.py --source oldsite.com --copy new.cms.dealer.com \\
+        --paths /service/ --copy-paths /service.htm
+
 A diferencia de scan.py, aca los dos textos deben ser IGUALES: no se traduce
 nada, se copia. Cualquier diferencia es sospechosa.
 
@@ -28,20 +32,51 @@ MARKS = {"error": "X", "warning": "!", "info": "i"}
 ORDER = {"error": 0, "warning": 1, "info": 2}
 
 
-def read_paths(args) -> list[str]:
-    """Los paths vienen por argumento o desde un archivo, uno por linea."""
+def _leer_lineas(archivo: str) -> list[str]:
+    contenido = Path(archivo).read_text(encoding="utf-8-sig")
+    return [line.strip() for line in contenido.splitlines()
+            if line.strip() and not line.strip().startswith("#")]
+
+
+def read_paths(args) -> tuple[list[str], list[str]]:
+    """Los paths vienen por argumento o desde un archivo, uno por linea.
+
+    Si se dan --copy-paths/--copy-paths-file, van emparejados por POSICION
+    con --paths/--paths-file: paths[i] es la pagina del sitio original,
+    copy_paths[i] su equivalente en la copia. Hace falta cuando las dos
+    plataformas arman las rutas distinto -- el live site en '/seccion/', el
+    CMS en '/seccion.htm' -- y ningun string sirve para las dos a la vez.
+
+    Devuelve (paths, copy_paths). copy_paths es None si no se dio ninguno.
+    """
     paths = list(args.paths or [])
     if args.paths_file:
-        contenido = Path(args.paths_file).read_text(encoding="utf-8-sig")
-        paths += [line.strip() for line in contenido.splitlines()
-                  if line.strip() and not line.strip().startswith("#")]
-    # Sin duplicados, conservando el orden en que se dieron
+        paths += _leer_lineas(args.paths_file)
+
+    copy_paths = None
+    if args.copy_paths or args.copy_paths_file:
+        copy_paths = list(args.copy_paths or [])
+        if args.copy_paths_file:
+            copy_paths += _leer_lineas(args.copy_paths_file)
+
+    if copy_paths is not None:
+        # Sin duplicados, pero por el PAR: si se dedupea cada lista por su
+        # cuenta se puede desalinear la correspondencia por posicion.
+        vistos, unicos_paths, unicos_copy = set(), [], []
+        for p, c in zip(paths, copy_paths):
+            clave = (p, c)
+            if clave not in vistos:
+                vistos.add(clave)
+                unicos_paths.append(p)
+                unicos_copy.append(c)
+        return unicos_paths, unicos_copy
+
     vistos, unicos = set(), []
     for p in paths:
         if p not in vistos:
             vistos.add(p)
             unicos.append(p)
-    return unicos
+    return unicos, None
 
 
 def print_report(result) -> None:
@@ -146,8 +181,15 @@ def main() -> int:
                         help="Domain of the original site, the one being copied from")
     parser.add_argument("--copy", required=True, dest="copy_site",
                         help="Domain of the migrated site, usually the CMS one")
-    parser.add_argument("--paths", nargs="*", help="Paths to compare, the same on both sites")
-    parser.add_argument("--paths-file", help="File with one path per line")
+    parser.add_argument("--paths", nargs="*",
+                        help="Paths on the source site (also used on the copy, unless "
+                             "--copy-paths is given)")
+    parser.add_argument("--paths-file", help="File with one source path per line")
+    parser.add_argument("--copy-paths", nargs="*",
+                        help="Paths on the migrated site, paired by position with --paths -- "
+                             "only needed when the two platforms build URLs differently")
+    parser.add_argument("--copy-paths-file", help="File with one copy path per line, "
+                                                   "paired by position with --paths-file")
     parser.add_argument("--csv", dest="csv_path", help="Save the report as CSV (Excel)")
     parser.add_argument("--json", dest="json_path", help="Save the report as JSON")
     parser.add_argument("--popups", action="store_true",
@@ -171,9 +213,13 @@ def main() -> int:
         format="%(levelname)s %(name)s: %(message)s",
     )
 
-    paths = read_paths(args)
+    paths, copy_paths = read_paths(args)
     if not paths:
         print("No paths given. Use --paths / /service/  or  --paths-file paths.txt")
+        return 1
+    if copy_paths is not None and len(paths) != len(copy_paths):
+        print(f"--paths and --copy-paths must have the same number of entries "
+              f"({len(paths)} vs {len(copy_paths)}).")
         return 1
 
     # El glosario no se valida aca: en una migracion no se traduce. Solo se
@@ -183,7 +229,7 @@ def main() -> int:
     if args.links:
         print("Checking links against both sites (this takes a while)...")
 
-    result = compare_sites(args.source, args.copy_site, paths,
+    result = compare_sites(args.source, args.copy_site, paths, copy_paths=copy_paths,
                            char_rules=glossary.char_rules, mobile=args.mobile,
                            verify_links=args.links)
     if result.error:

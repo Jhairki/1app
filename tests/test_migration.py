@@ -187,6 +187,32 @@ def main() -> int:
                          for f in mismatches),
                   "; ".join(f.meta.get("copy_url", "") for f in mismatches))
 
+    print("\n7b. Paths distintos entre el original y la copia (--copy-paths)")
+    paginas["https://oldsite.example.com/service/"] = ORIGINAL
+    paginas["https://new.cms.dealer.com/service.htm"] = MIGRADA
+    con_pares = migration.compare_sites(
+        ORIGEN, COPIA, ["/service/"], copy_paths=["/service.htm"],
+        char_rules=glossary.char_rules,
+    )
+    ok &= revisar("compara el path del original contra el de la copia",
+                  not con_pares.error, con_pares.error)
+    ok &= revisar("el reporte identifica la pagina por el path de la copia",
+                  con_pares.pages and con_pares.pages[0].path == "/service.htm",
+                  con_pares.pages[0].path if con_pares.pages else "sin paginas")
+    ok &= revisar("las URLs armadas usan el path de cada sitio",
+                  con_pares.pages
+                  and con_pares.pages[0].source_url == "https://oldsite.example.com/service/"
+                  and con_pares.pages[0].copy_url == "https://new.cms.dealer.com/service.htm",
+                  f"{con_pares.pages[0].source_url} / {con_pares.pages[0].copy_url}"
+                  if con_pares.pages else "sin paginas")
+
+    print("\n7c. --paths y --copy-paths de largo distinto es un error, no una corrida a medias")
+    con_error = migration.compare_sites(ORIGEN, COPIA, ["/", "/service/"],
+                                        copy_paths=["/index.htm"],
+                                        char_rules=glossary.char_rules)
+    ok &= revisar("informa el error en vez de comparar como pueda",
+                  bool(con_error.error) and not con_error.pages, con_error.error)
+
     print("\n8. Sin --links no se pide nada de eso")
     sin_links = migration.compare_sites(ORIGEN, COPIA, ["/"], char_rules=glossary.char_rules)
     ok &= revisar("no aparecen hallazgos de link roto ni de destino",

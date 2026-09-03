@@ -92,13 +92,21 @@ class MigrationResult:
         }
 
 
-def compare_page(source_site: str, copy_site: str, path: str,
+def compare_page(source_site: str, copy_site: str, source_path: str, copy_path: str,
                  session: requests.Session, char_rules=None,
                  verify_links: bool = False, link_cache: dict = None) -> PagePair:
-    """Compara un mismo path en los dos sitios."""
-    source_url = urljoin(source_site, path.lstrip("/"))
-    copy_url = urljoin(copy_site, path.lstrip("/"))
-    result = PagePair(path=path, source_url=source_url, copy_url=copy_url)
+    """Compara un path del original contra su equivalente en la copia.
+
+    source_path y copy_path pueden ser distintos: cada plataforma arma sus
+    rutas a su manera (el live site suele usar '/seccion/', el CMS
+    '/seccion.htm'), asi que no hay garantia de que sea el mismo string en
+    los dos lados -- eso lo decide quien arma la lista de paths, no esta
+    funcion. El path que identifica la pagina en el reporte es el de la
+    copia: es el que un QA va a mirar en el CMS.
+    """
+    source_url = urljoin(source_site, source_path.lstrip("/"))
+    copy_url = urljoin(copy_site, copy_path.lstrip("/"))
+    result = PagePair(path=copy_path, source_url=source_url, copy_url=copy_url)
 
     copy_html = fetch_html(session, copy_url)
     if copy_html is None:
@@ -122,12 +130,12 @@ def compare_page(source_site: str, copy_site: str, path: str,
     findings: list[Finding] = []
 
     # --- Daño introducido al copiar ---
-    findings += find_broken_keys(copy_text, path, source_keys)
-    findings += find_html_entities(copy_text, path)
-    findings += find_char_issues(copy_text, char_rules, path)
+    findings += find_broken_keys(copy_text, copy_path, source_keys)
+    findings += find_html_entities(copy_text, copy_path)
+    findings += find_char_issues(copy_text, char_rules, copy_path)
 
     # --- El bug clasico de migracion ---
-    findings += find_source_leaks(make_soup(copy_html), source_site, path)
+    findings += find_source_leaks(make_soup(copy_html), source_site, copy_path)
 
     # --- Fidelidad del contenido ---
     pairs, orphans, missing = pair_units(copy_units, source_units)
@@ -137,17 +145,17 @@ def compare_page(source_site: str, copy_site: str, path: str,
     orphans = [u for u in orphans if u.kind not in POPUP_KINDS]
     missing = [u for u in missing if u.kind not in POPUP_KINDS]
 
-    findings += compare_texts(source_units, copy_units, pairs, orphans, missing, path)
-    findings += compare_counts(source_units, copy_units, path)
-    findings += check_popups(copy_units, source_units, path)
+    findings += compare_texts(source_units, copy_units, pairs, orphans, missing, copy_path)
+    findings += compare_counts(source_units, copy_units, copy_path)
+    findings += check_popups(copy_units, source_units, copy_path)
 
     # --- Links: que funcionen, y que lleven al mismo lugar que en el original ---
     # Aparte de los otros checks porque pega al sitio en vivo por cada link, no
     # solo por cada pagina: es lento, por eso queda detras de un flag.
     if verify_links:
         cache = link_cache if link_cache is not None else {}
-        findings += check_broken_links(copy_units, copy_site, path, session, cache)
-        findings += check_link_destinations(pairs, source_site, copy_site, path, session, cache)
+        findings += check_broken_links(copy_units, copy_site, copy_path, session, cache)
+        findings += check_link_destinations(pairs, source_site, copy_site, copy_path, session, cache)
 
     result.findings = _dedupe(findings)
     return result
@@ -168,34 +176,62 @@ def _dedupe(findings: list[Finding]) -> list[Finding]:
     return [mejores[c] for c in orden]
 
 
-def compare_sites(source_site: str, copy_site: str, paths,
+def _normalize_path(p: str) -> str:
+    if "://" in p or p.startswith("/"):
+        return p
+    return "/" + p
+
+
+def compare_sites(source_site: str, copy_site: str, paths, copy_paths=None,
                   char_rules=None, on_progress=None, mobile: bool = False,
                   verify_links: bool = False) -> MigrationResult:
-    """Compara una lista de paths entre los dos sitios."""
+    """Compara una lista de paths entre los dos sitios.
+
+    Si copy_paths viene, cada path se empareja por POSICION con el de
+    paths: paths[i] es la pagina en el sitio original, copy_paths[i] su
+    equivalente en la copia. Hace falta cuando las dos plataformas arman las
+    rutas distinto (el live site en '/seccion/', el CMS en '/seccion.htm') y
+    no hay forma de que un solo string sirva para las dos.
+
+    Sin copy_paths, se asume el mismo path en los dos lados -- el caso comun.
+    """
     source_site = normalize_base_url(source_site)
     copy_site = normalize_base_url(copy_site)
     result = MigrationResult(source_site=source_site, copy_site=copy_site)
 
-    paths = [p if p.startswith("/") else "/" + p for p in paths]
+    paths = [_normalize_path(p) for p in paths]
     if not paths:
         result.error = "No paths given. Pass at least one with --paths."
         return result
+
+    if copy_paths is not None:
+        copy_paths = [_normalize_path(p) for p in copy_paths]
+        if len(copy_paths) != len(paths):
+            result.error = (
+                f"--paths and --copy-paths must have the same number of entries "
+                f"({len(paths)} vs {len(copy_paths)})."
+            )
+            return result
+    else:
+        copy_paths = paths
 
     session = make_session(mobile=mobile)
     # Una sola cache de links para toda la corrida: la navegacion se repite en
     # cada pagina, y sin compartirla se verificaria el mismo link una vez por
     # pagina en la que aparece.
     link_cache: dict = {}
-    for index, path in enumerate(paths):
+    total = len(paths)
+    for index, (source_path, copy_path) in enumerate(zip(paths, copy_paths)):
         if index > 0:
             polite_pause()
-        logger.info("Comparing %s (%d/%d)", path, index + 1, len(paths))
+        logger.info("Comparing %s -> %s (%d/%d)", source_path, copy_path, index + 1, total)
         if on_progress is not None:
-            on_progress(index, len(paths), path)
-        result.pages.append(compare_page(source_site, copy_site, path, session, char_rules,
+            on_progress(index, total, copy_path)
+        result.pages.append(compare_page(source_site, copy_site, source_path, copy_path,
+                                         session, char_rules,
                                          verify_links=verify_links, link_cache=link_cache))
 
     if on_progress is not None:
-        on_progress(len(paths), len(paths), "")
+        on_progress(total, total, "")
 
     return result
