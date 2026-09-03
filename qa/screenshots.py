@@ -221,8 +221,24 @@ def _texto_de(finding, campo: str) -> str:
     return (finding.meta or {}).get("source_text") or finding.expected or ""
 
 
+def _es_navegacion(finding) -> bool:
+    """El hallazgo es de un termino del menu/nav, no de contenido de la pagina.
+
+    El nav (y el footer) del sitio son el MISMO fragmento de HTML repetido en
+    cada pagina -- no una coincidencia de texto, es literalmente el mismo
+    elemento. Capturarlo desde dos paginas distintas da dos fotos casi
+    identicas del mismo navbar: no es evidencia nueva, es el mismo bug
+    fotografiado dos veces.
+
+    La señal es la columna 'context' del glosario (nav/cta/form/...), que el
+    equipo ya usa para categorizar cada termino al mantenerlo.
+    """
+    return "nav" in (finding.context or "").split(" | ")
+
+
 def collect(result, device: str = "D", both_sides: bool = True,
-            max_shots: int = 60, max_per_bug: int = 2, headless: bool = True) -> dict:
+            max_shots: int = 60, max_per_bug: int = 2, max_per_bug_nav: int = 1,
+            headless: bool = True) -> dict:
     """Captura imagenes por hallazgo, agrupadas por lugar. Devuelve:
 
         {linea_de_bug: [{"path", "source", "reference", "shots": [...]}]}
@@ -239,6 +255,10 @@ def collect(result, device: str = "D", both_sides: bool = True,
     30 veces es la misma imagen una y otra vez. La lista completa de paginas
     afectadas se sigue mostrando aparte (group_repeated ya la arma, sin tope):
     esto solo limita CUANTAS de esas paginas llevan captura.
+
+    Los bugs de navegacion (ver _es_navegacion) usan max_per_bug_nav en vez de
+    max_per_bug -- por defecto 1, porque ahi las paginas de mas no aportan
+    nada: es literalmente el mismo elemento en todas.
     """
     try:
         from playwright.sync_api import sync_playwright
@@ -267,7 +287,8 @@ def collect(result, device: str = "D", both_sides: bool = True,
                 por_bug: dict[str, object] = {}
                 for finding in page_result.findings:
                     linea = to_bug(finding, device)
-                    if conteo_por_bug.get(linea, 0) >= max_per_bug:
+                    tope = max_per_bug_nav if _es_navegacion(finding) else max_per_bug
+                    if conteo_por_bug.get(linea, 0) >= tope:
                         continue  # ya se capturaron suficientes lugares de este bug
                     por_bug.setdefault(linea, finding)
                 if not por_bug:
