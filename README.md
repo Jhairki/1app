@@ -56,6 +56,14 @@ Sale con código 1 si hay errores, para encadenarlo en CI.
 **En Git Bash**, si pasás `--paths /` solo, antepone `MSYS_NO_PATHCONV=1` — si no,
 Git Bash convierte la barra en una ruta de Windows.
 
+La portada se reporta siempre como `/index.htm`, sea que llegue de la
+navegación (el logo del sitio suele apuntar a `/` a secas) o de un `--paths /`
+dado a mano — así queda con la misma pinta que el resto de las secciones del
+sitio (`/showroom/index.htm`, `/new-inventory/index.htm`...). Verificado que
+`/index.htm` resuelve igual que `/` en el CMS. Esto es propio de este QA: en
+Stare & Compare el sitio origen puede ser cualquier plataforma, así que ahí
+no se normaliza.
+
 ### Stare and Compare — sitio migrado contra el original
 
 ```bash
@@ -134,6 +142,12 @@ cada *lugar* donde se ilustró el bug: su path, sus dos enlaces (`source` y, si
 aplica, el de referencia) y sus imágenes — todo junto en una tarjeta. Por
 defecto se ilustran hasta 2 lugares por bug; el resto de las páginas afectadas
 se sigue listando aparte, en `Pages`, sin capturas repetidas.
+
+Un bug de un término de **navegación** (nav/footer) es distinto: es el mismo
+elemento de HTML repetido igual en cada página, así que dos capturas de él son
+la misma foto dos veces, no evidencia nueva. Esos bugs se limitan a 1 solo
+lugar ilustrado en vez de 2 — se detectan por la columna `context` del
+glosario (la misma que el equipo usa para categorizar cada término).
 
 Para el lado de referencia (la otra página), el texto a buscar **no** es
 siempre el mismo campo del hallazgo: para un `off_glossary`, `expected` es la
