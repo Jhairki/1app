@@ -115,15 +115,35 @@ en una tabla de una línea por veredicto, fácil de corregir.
 
 `--shots` abre un navegador, ubica el elemento de cada hallazgo, le dibuja un
 contorno rojo y **recorta esa región** — no fotografía la página entera. Cuando
-hay las dos versiones, captura ambas y quedan lado a lado en el reporte.
+hay las dos versiones, captura ambas y quedan lado a lado.
 
 El recorte es por espacio: un reporte de Test & Feedback pesa ~700 KB por
-captura de página completa, y estas pesan **14 KB**. Once bugs con 18 capturas
-dan un archivo de 391 KB, que se sigue pudiendo mandar por mail.
+captura de página completa, y estas pesan **14 KB**.
 
-Requiere Playwright y agrega un par de minutos. Los elementos que no se pueden
-ubicar quedan sin captura — por ahora se prefiere ninguna antes que una que no
-muestre el elemento.
+Si el elemento está oculto dentro de un menú desplegable (submenús que solo
+aparecen con hover o clic), primero se intenta destaparlo: se sube por los
+ancestros hasta el contenedor colapsado y se acciona su disparador — clic si
+usa `data-toggle`/`aria-haspopup` (Bootstrap), hover si es un menú por CSS.
+Los elementos que ni así se pueden ubicar quedan sin captura — se prefiere
+ninguna antes que una que no muestre el elemento.
+
+**Un bug agrupado en varias páginas no repite la captura en cada una.** Cada
+hallazgo se agrupa por su línea de bug (`Field 1 | Field 2 | Field 3 | Field 4`,
+igual que el resto del reporte), y dentro de esa línea el reporte muestra, por
+cada *lugar* donde se ilustró el bug: su path, sus dos enlaces (`source` y, si
+aplica, el de referencia) y sus imágenes — todo junto en una tarjeta. Por
+defecto se ilustran hasta 2 lugares por bug; el resto de las páginas afectadas
+se sigue listando aparte, en `Pages`, sin capturas repetidas.
+
+Para el lado de referencia (la otra página), el texto a buscar **no** es
+siempre el mismo campo del hallazgo: para un `off_glossary`, `expected` es la
+traducción canónica del glosario — lo que *debería* decir la página revisada —
+no lo que dice de verdad la otra página. Buscar eso ahí casi siempre fallaba.
+`TermChecker.check()` ahora guarda aparte, en `meta['source_text']`, el texto
+real de la contraparte, y `screenshots.py` lo usa para localizar el elemento
+del lado de referencia.
+
+Requiere Playwright y agrega un par de minutos.
 
 ### Validar el glosario
 

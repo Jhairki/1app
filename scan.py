@@ -200,7 +200,7 @@ def main() -> int:
         print()
         print("Capturing screenshots (this takes a while)...")
         shots = collect_shots(result, device)
-        print(f"  {sum(len(v) for v in shots.values())} screenshots captured")
+        print(f"  {sum(len(s['shots']) for v in shots.values() for s in v)} screenshots captured across {sum(len(v) for v in shots.values())} locations")
 
     if args.html_path:
         bugs = write_html(result, args.html_path, device,

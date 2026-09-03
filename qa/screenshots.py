@@ -205,12 +205,40 @@ def _urls_de(page_result):
     return (page_result.spanish_url, "Spanish page"), (page_result.english_url, "English page")
 
 
+def _texto_de(finding, campo: str) -> str:
+    """El texto a buscar en la pantalla, para el lado 'found' o 'reference'.
+
+    El lado de referencia NO usa finding.expected a ciegas: para un
+    off_glossary, expected es la traduccion canonica del glosario (lo que
+    DEBERIA decir la pagina revisada), no lo que dice de verdad la pagina de
+    referencia. meta['source_text'], cuando existe, es el texto real de esa
+    contraparte -- lo guarda TermChecker.check(). Sin esto, un heading sin
+    link se quedaba sin captura del lado ingles: buscaba una traduccion que
+    esa pagina nunca tuvo.
+    """
+    if campo == "found":
+        return finding.found or ""
+    return (finding.meta or {}).get("source_text") or finding.expected or ""
+
+
 def collect(result, device: str = "D", both_sides: bool = True,
-            max_shots: int = 60, headless: bool = True) -> dict:
-    """Captura una imagen por hallazgo. Devuelve {linea_de_bug: [shots]}.
+            max_shots: int = 60, max_per_bug: int = 2, headless: bool = True) -> dict:
+    """Captura imagenes por hallazgo, agrupadas por lugar. Devuelve:
+
+        {linea_de_bug: [{"path", "source", "reference", "shots": [...]}]}
+
+    Cada entrada de la lista es UN LUGAR donde aparece el bug -- una pagina --
+    con sus propias imagenes y sus propios enlaces de origen, en vez de una
+    galeria plana sin saber que imagen viene de donde.
 
     both_sides captura tambien el lado de referencia, que en el Stare and
     Compare es lo que hace evidente la diferencia sin leer nada.
+
+    max_per_bug limita cuantos LUGARES se capturan por cada bug agrupado. Un
+    label del nav puede repetirse en las 30 paginas del sitio; capturarlo las
+    30 veces es la misma imagen una y otra vez. La lista completa de paginas
+    afectadas se sigue mostrando aparte (group_repeated ya la arma, sin tope):
+    esto solo limita CUANTAS de esas paginas llevan captura.
     """
     try:
         from playwright.sync_api import sync_playwright
@@ -221,6 +249,7 @@ def collect(result, device: str = "D", both_sides: bool = True,
     from qa.bugreport import to_bug
 
     capturas: dict[str, list] = {}
+    conteo_por_bug: dict[str, int] = {}
     tomadas = 0
 
     with sync_playwright() as p:
@@ -230,13 +259,26 @@ def collect(result, device: str = "D", both_sides: bool = True,
             pagina = navegador.new_page(viewport=vista)
 
             for page_result in result.pages:
-                if page_result.error or not page_result.findings:
+                if page_result.error or not page_result.findings or tomadas >= max_shots:
                     continue
-                (url_a, etiqueta_a), (url_b, etiqueta_b) = _urls_de(page_result)
 
+                # Un bug puede aparecer mas de una vez en la MISMA pagina (poco
+                # comun, pero pasa); se toma solo la primera ocurrencia.
+                por_bug: dict[str, object] = {}
+                for finding in page_result.findings:
+                    linea = to_bug(finding, device)
+                    if conteo_por_bug.get(linea, 0) >= max_per_bug:
+                        continue  # ya se capturaron suficientes lugares de este bug
+                    por_bug.setdefault(linea, finding)
+                if not por_bug:
+                    continue
+
+                (url_a, etiqueta_a), (url_b, etiqueta_b) = _urls_de(page_result)
                 lados = [(url_a, etiqueta_a, "found")]
                 if both_sides and url_b:
-                    lados.append((url_b, etiqueta_b, "expected"))
+                    lados.append((url_b, etiqueta_b, "reference"))
+
+                imagenes_por_bug: dict[str, list] = {linea: [] for linea in por_bug}
 
                 for url, etiqueta, campo in lados:
                     if tomadas >= max_shots:
@@ -248,18 +290,27 @@ def collect(result, device: str = "D", both_sides: bool = True,
                         logger.info("No se pudo abrir %s: %s", url, exc)
                         continue
 
-                    for finding in page_result.findings:
+                    for linea, finding in por_bug.items():
                         if tomadas >= max_shots:
                             break
-                        texto = getattr(finding, campo, "") or ""
+                        texto = _texto_de(finding, campo)
                         if not texto:
                             continue
                         imagen = capture(pagina, finding, texto)
                         if imagen:
-                            capturas.setdefault(to_bug(finding, device), []).append(
-                                {"label": etiqueta, "src": imagen, "url": url}
-                            )
+                            imagenes_por_bug[linea].append({"label": etiqueta, "src": imagen})
                             tomadas += 1
+
+                for linea, shots in imagenes_por_bug.items():
+                    if not shots:
+                        continue
+                    conteo_por_bug[linea] = conteo_por_bug.get(linea, 0) + 1
+                    capturas.setdefault(linea, []).append({
+                        "path": page_result.path,
+                        "source": url_a,
+                        "reference": url_b if both_sides else "",
+                        "shots": shots,
+                    })
         finally:
             navegador.close()
 

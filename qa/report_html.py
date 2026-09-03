@@ -82,17 +82,54 @@ def build(result, device: str = "D", title: str = "QA Report",
         if len(g["paths"]) > 25:
             paths_html += f'<li class="muted">…and {len(g["paths"]) - 25} more</li>'
 
-        imagenes = shots.get(g["bug"], [])
-        shots_html = ""
-        if imagenes:
-            tarjetas = "".join(
-                f'<figure class="shot">'
-                f'<figcaption>{_e(img["label"])}</figcaption>'
-                f'<img src="{img["src"]}" alt="{_e(img["label"])}" loading="lazy">'
-                f'</figure>'
-                for img in imagenes
+        # Cada elemento es UN LUGAR donde se capturo el bug: su propia pagina,
+        # sus propios enlaces de origen, y sus propias imagenes, todo junto --
+        # no una galeria plana sin saber de donde vino cada captura.
+        lugares = shots.get(g["bug"], [])
+        lugares_html = ""
+        if lugares:
+            tarjetas_lugar = []
+            for lugar in lugares:
+                shots_html = "".join(
+                    f'<figure class="shot">'
+                    f'<figcaption>{_e(s["label"])}</figcaption>'
+                    f'<img src="{s["src"]}" alt="{_e(s["label"])}" loading="lazy">'
+                    f'</figure>'
+                    for s in lugar["shots"]
+                )
+                enlaces = []
+                if lugar.get("source"):
+                    enlaces.append(
+                        f'<a href="{_e(lugar["source"])}" target="_blank" rel="noopener">'
+                        f'{_e(lugar["source"])}</a>'
+                    )
+                if lugar.get("reference") and lugar["reference"] != lugar.get("source"):
+                    enlaces.append(
+                        f'<a href="{_e(lugar["reference"])}" target="_blank" rel="noopener">'
+                        f'{_e(lugar["reference"])}</a>'
+                    )
+                tarjetas_lugar.append(
+                    '<div class="place">'
+                    f'<div class="placePath"><code>{_e(lugar["path"])}</code></div>'
+                    f'<div class="shots">{shots_html}</div>'
+                    f'<div class="placeLinks">{" &middot; ".join(enlaces)}</div>'
+                    '</div>'
+                )
+            restantes = len(g["paths"]) - len(lugares)
+            nota_restantes = (
+                f'<p class="hint">+{restantes} more page{"s" if restantes != 1 else ""} '
+                'with this same bug, not pictured &mdash; see Pages below.</p>'
+                if restantes > 0 else ""
             )
-            shots_html = f'<div class="label">Screenshots</div><div class="shots">{tarjetas}</div>'
+            lugares_html = (
+                '<div class="label">Where it was found</div>'
+                + "".join(tarjetas_lugar) + nota_restantes
+            )
+        elif url:
+            lugares_html = (
+                '<div class="label">Source</div>'
+                f'<a class="src" href="{_e(url)}" target="_blank" rel="noopener">{_e(url)}</a>'
+            )
 
         repetido = ""
         if len(g["paths"]) > 1:
@@ -102,26 +139,27 @@ def build(result, device: str = "D", title: str = "QA Report",
                 'whoever worked on the request instead of filing it once per page.</p>'
             )
 
-        bugs.append(f'''
-    <div class="bug" id="bug{i}">
-      <div class="bugHead">
-        <span class="bugId">Bug {i}</span>
-        <span class="bugDate">{_e(ahora.strftime("%m/%d/%Y %I:%M %p"))}</span>
-      </div>
-      <h2 class="bugTitle">
-        <span class="f f1">{_e(f1)}</span><span class="sep">|</span>
-        <span class="f f2" style="color:{color};background:{fondo}">{_e(f2)}</span><span class="sep">|</span>
-        <span class="f f3">{_e(f3)}</span><span class="sep">|</span>
-        <span class="f4">{_e(f4)}</span>
-      </h2>
-      <div class="bugBody">
-        {repetido}
-        <div class="label">Pages</div>
-        <ul class="paths">{paths_html}</ul>
-        {shots_html}
-        {f'<div class="label">Source</div><a class="src" href="{_e(url)}" target="_blank" rel="noopener">{_e(url)}</a>' if url else ''}
-      </div>
-    </div>''')
+        bugs.append(
+            f'\n    <div class="bug" id="bug{i}">\n'
+            '      <div class="bugHead">\n'
+            f'        <span class="bugId">Bug {i}</span>\n'
+            f'        <span class="bugDate">{_e(ahora.strftime("%m/%d/%Y %I:%M %p"))}</span>\n'
+            '      </div>\n'
+            '      <h2 class="bugTitle">\n'
+            f'        <span class="f f1">{_e(f1)}</span><span class="sep">|</span>\n'
+            f'        <span class="f f2" style="color:{color};background:{fondo}">{_e(f2)}</span>'
+            '<span class="sep">|</span>\n'
+            f'        <span class="f f3">{_e(f3)}</span><span class="sep">|</span>\n'
+            f'        <span class="f4">{_e(f4)}</span>\n'
+            '      </h2>\n'
+            '      <div class="bugBody">\n'
+            f'        {repetido}\n'
+            f'        {lugares_html}\n'
+            '        <div class="label">Pages</div>\n'
+            f'        <ul class="paths">{paths_html}</ul>\n'
+            '      </div>\n'
+            '    </div>'
+        )
 
     filed = len(grupos)
     return f'''<!doctype html>
@@ -217,6 +255,16 @@ def build(result, device: str = "D", title: str = "QA Report",
   .shot img {{
     max-width: 100%; border: 1px solid #edebe9; border-radius: 2px; display: block;
   }}
+  .place {{
+    border: 1px solid #edebe9; border-radius: 2px; padding: 12px 14px;
+    margin-bottom: 10px; background: #faf9f8;
+  }}
+  .placePath {{ margin-bottom: 10px; }}
+  .placePath code {{ font-size: 13px; font-weight: 600; background: transparent; padding: 0; }}
+  .placeLinks {{
+    margin-top: 8px; font-size: 12px; word-break: break-all;
+  }}
+  .placeLinks a {{ color: #0078d4; }}
   .muted {{ color: #605e5c; }}
   footer {{ margin-top: 40px; color: #a19f9d; font-size: 12px; }}
   @media (prefers-color-scheme: dark) {{
@@ -225,6 +273,7 @@ def build(result, device: str = "D", title: str = "QA Report",
     .tocRow {{ border-color: #323130; }}
     .tocRow:hover {{ background: #323130; }}
     .bugTitle {{ border-color: #323130; }}
+    .place {{ background: #1e1d1c; border-color: #3b3a39; }}
     code {{ background: #323130; }}
     h2.section {{ border-color: #3b3a39; }}
     .sub, .statName, .bugDate, .tocPages, .label, .muted {{ color: #a19f9d; }}

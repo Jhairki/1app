@@ -187,6 +187,26 @@ class TermChecker:
     # ---------- veredicto ----------
 
     def check(self, spanish_text: str, english_text: str = "", path: str = "") -> Finding:
+        """Punto de entrada publico. Ver _check() para la logica real.
+
+        Envuelve _check() solo para guardar el texto REAL de la contraparte en
+        finding.meta['source_text']. Hace falta separado de 'expected': para un
+        off_glossary, 'expected' es la traduccion canonica del glosario (lo que
+        DEBERIA decir la pagina española), no lo que dice de verdad la pagina en
+        ingles. Buscar 'expected' en la pagina inglesa para tomar una captura
+        casi siempre falla, porque ese texto no esta ahi -- esta en la pagina
+        española, como correccion sugerida.
+
+        Encontrado asi: un heading sin link (sin forma de ubicarlo por href) se
+        quedaba sin captura del lado ingles porque el buscador de pantallas
+        buscaba la traduccion canonica en la pagina que dice otra cosa.
+        """
+        finding = self._check(spanish_text, english_text, path)
+        if english_text:
+            finding.meta.setdefault("source_text", english_text)
+        return finding
+
+    def _check(self, spanish_text: str, english_text: str = "", path: str = "") -> Finding:
         shown = normalize_display(spanish_text)
         normalized = normalize(spanish_text)
 
