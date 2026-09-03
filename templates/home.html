@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Two QA tools</h1>
+<p class="sub">
+  They look similar and they are not. Pick the one that matches what you are
+  checking — the logic underneath is opposite.
+</p>
+
+{% if glossary_counts.error %}
+  <div class="banner error">
+    <strong>The glossary has {{ glossary_counts.error }} errors.</strong>
+    Localization scans will not run until they are fixed.
+    <a href="{{ url_for('glossary_view') }}">See the details</a>.
+  </div>
+{% endif %}
+
+<div class="cards">
+  <a class="card" href="{{ url_for('localization') }}">
+    <h3>Localization QA</h3>
+    <div class="dir">English page &nbsp;→&nbsp; Spanish page &nbsp;·&nbsp; same site</div>
+    <p>
+      The two texts <strong>must differ</strong>. What gets validated is that the
+      Spanish follows the official glossary, that nothing was left in English,
+      and that the capitalization follows the English page.
+    </p>
+    <span class="go">Run a localization scan →</span>
+  </a>
+
+  <a class="card" href="{{ url_for('compare') }}">
+    <h3>Stare &amp; Compare</h3>
+    <div class="dir">Source site &nbsp;→&nbsp; Migrated site &nbsp;·&nbsp; two sites</div>
+    <p>
+      The two texts <strong>must match</strong>. Nothing is translated, so any
+      difference is suspicious: content lost in the move, text altered, and links
+      still pointing at the old site.
+    </p>
+    <span class="go">Compare two sites →</span>
+  </a>
+</div>
+
+<div class="panel" style="margin-top:22px">
+  <h2>What they share</h2>
+  <div class="scroll">
+    <table>
+      <tr><th style="width:230px">Check</th><th>Localization</th><th>Stare &amp; Compare</th></tr>
+      <tr><td>Broken CMS labels</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Corrupt characters, HTML entities</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Popups that did not make it</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Content missing from the other side</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Glossary and capitalization</td><td>yes</td><td><span class="faint">not applicable</span></td></tr>
+      <tr><td>Miles and kilometers</td><td>yes</td><td><span class="faint">not applicable</span></td></tr>
+      <tr><td>Text altered from the original</td><td><span class="faint">expected to differ</span></td><td>yes</td></tr>
+      <tr><td>Links still pointing at the source site</td><td><span class="faint">not applicable</span></td><td>yes</td></tr>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:16px">
+    Both report in the team bug format — <span class="mono">Field 1 | Field 2 | Field 3 | Field 4</span> —
+    and both export the Test &amp; Feedback style report.
+    Glossary loaded: <strong>{{ glossary|length }}</strong> terms.
+  </p>
+</div>
+
+{% endblock %}

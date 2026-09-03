@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Localization QA{% endblock %}</title>
+  <title>{% block title %}QA Tools{% endblock %}</title>
   <style>
     :root {
       --bg: #f7f8fa;
@@ -174,6 +174,14 @@
       background: var(--panel); overflow-wrap: anywhere; min-width: 0;
       box-shadow: var(--shadow);
     }
+    .bugline {
+      border: 1px solid var(--border); border-left-width: 3px;
+      border-radius: 9px; padding: 12px 15px; margin-bottom: 8px;
+      background: var(--panel-2); overflow-wrap: anywhere;
+    }
+    .bugline.error { border-left-color: var(--error-line); }
+    .bugline.warning { border-left-color: var(--warning-line); }
+    .bugline.info { border-left-color: var(--info-line); }
     .finding.error { border-left-color: var(--error-line); }
     .finding.warning { border-left-color: var(--warning-line); }
     .finding.info { border-left-color: var(--info-line); }
@@ -240,19 +248,35 @@
     .faint { color: var(--faint); }
     .empty { text-align: center; padding: 44px 20px; color: var(--muted); }
     .empty .big { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .card {
+      display: block; background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+      color: inherit; text-decoration: none;
+    }
+    .card:hover { border-color: var(--accent); text-decoration: none; }
+    .card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 640; }
+    .card p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+    .card .go { color: var(--accent); font-size: 13.5px; font-weight: 600; }
+    .card .dir {
+      font-family: var(--mono); font-size: 12px; color: var(--faint);
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 11px; margin-bottom: 14px;
+    }
     [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <header class="top">
     <div class="wrap">
-      <span class="brand">
+      <a class="brand" href="{{ url_for('home') }}" style="color:inherit;text-decoration:none">
         <span class="dot"></span>
-        Localization QA
-        <small>dealer sites EN &rarr; ES</small>
-      </span>
+        QA Tools
+        <small>dealer sites</small>
+      </a>
       <nav>
-        <a href="{{ url_for('index') }}" class="{{ 'on' if active == 'scan' }}">Scan</a>
+        <a href="{{ url_for('localization') }}" class="{{ 'on' if active == 'localization' }}">Localization</a>
+        <a href="{{ url_for('compare') }}" class="{{ 'on' if active == 'compare' }}">Stare &amp; Compare</a>
         <a href="{{ url_for('glossary_view') }}" class="{{ 'on' if active == 'glossary' }}">Glossary</a>
       </nav>
     </div>

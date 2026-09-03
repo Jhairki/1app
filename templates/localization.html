@@ -13,10 +13,11 @@
   </div>
 {% endif %}
 
-<h1>Scan a site</h1>
+<h1>Localization QA</h1>
 <p class="sub">
-  Every path is checked at <span class="mono">?locale=es_US</span> against its
-  <span class="mono">?locale=en_US</span> counterpart.
+  English against Spanish on the same site. Every path is checked at
+  <span class="mono">?locale=es_US</span> against its
+  <span class="mono">?locale=en_US</span> counterpart, and every term against the glossary.
 </p>
 
 <div class="panel">
@@ -40,6 +41,11 @@
         <div class="hint">One per line. Leave empty to take them from the homepage navigation.</div>
       </div>
     </div>
+
+    <label style="display:flex;align-items:center;gap:9px;font-weight:500;margin-bottom:18px">
+      <input type="checkbox" name="mobile" value="1" style="width:auto">
+      <span>Check the mobile version <span class="faint">— reports Field 1 as M</span></span>
+    </label>
 
     <button type="submit">Run scan</button>
   </form>

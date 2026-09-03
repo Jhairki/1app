@@ -3,15 +3,25 @@
 
 {% if error %}
   <div class="banner error"><strong>The scan failed.</strong> {{ error }}</div>
-  <p><a href="{{ url_for('index') }}">&larr; Try again</a></p>
+  <p><a href="{{ url_for('home') }}">&larr; Try again</a></p>
 {% else %}
 
 <p class="faint" style="font-size:13px;margin:0 0 10px">
-  <a href="{{ url_for('index') }}">&larr; Scan another site</a>
+  <a href="{{ url_for('localization' if active == 'localization' else 'compare') }}">&larr; Run another one</a>
 </p>
 
 <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:18px">
-  <h1 style="margin:0">{{ result.base_url }}</h1>
+  <h1 style="margin:0">
+    {% if result.source_site is defined %}
+      <span class="mono" style="font-size:16px">{{ result.source_site }}</span>
+      <span class="faint">&rarr;</span>
+      <span class="mono" style="font-size:16px">{{ result.copy_site }}</span>
+    {% else %}
+      {{ result.base_url }}
+    {% endif %}
+  </h1>
+  <a href="{{ url_for('job_html', job_id=job_id) }}" target="_blank" rel="noopener"
+     style="font-size:13.5px">Open bug report</a>
   <a href="{{ url_for('job_csv', job_id=job_id) }}" style="font-size:13.5px">Download CSV</a>
 </div>
 
@@ -45,6 +55,28 @@
 
 {% if not summary.errors %}
   <div class="banner ok"><strong>No errors.</strong> Nothing blocks publishing.</div>
+{% endif %}
+
+{% if bugs %}
+<div class="panel">
+  <h2>Bug report format <span class="faint" style="font-weight:400">— {{ bugs|length }} bugs, ready to paste</span></h2>
+  {% for b in bugs %}
+    {% set partes = b.bug.split(' | ', 3) %}
+    <div class="bugline {{ 'error' if partes[1] == 'Critical' else ('warning' if partes[1] == 'Issue' else 'info') }}">
+      <div class="msg mono" style="font-size:13px">{{ b.bug }}</div>
+      {% if b.paths|length > 1 %}
+        <div class="where" style="margin-top:8px">
+          on {{ b.paths|length }} pages: {{ b.paths[:6]|join(', ') }}{% if b.paths|length > 6 %} …{% endif %}
+        </div>
+        <div class="where" style="color:var(--warning)">
+          Same bug on several pages — check with whoever worked on the request.
+        </div>
+      {% else %}
+        <div class="where" style="margin-top:8px">{{ b.paths[0] }}</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
 {% endif %}
 
 {% if findings %}
@@ -94,8 +126,13 @@
           {% if i %}<span class="pill info">{{ i }} info</span>{% endif %}
         </span>
         <span class="links">
-          <a href="{{ page.spanish_url }}" target="_blank" rel="noopener">ES page</a> ·
-          <a href="{{ page.english_url }}" target="_blank" rel="noopener">EN page</a>
+          {% if page.copy_url is defined %}
+            <a href="{{ page.copy_url }}" target="_blank" rel="noopener">migrated</a> ·
+            <a href="{{ page.source_url }}" target="_blank" rel="noopener">source</a>
+          {% else %}
+            <a href="{{ page.spanish_url }}" target="_blank" rel="noopener">ES page</a> ·
+            <a href="{{ page.english_url }}" target="_blank" rel="noopener">EN page</a>
+          {% endif %}
         </span>
       </div>
 
