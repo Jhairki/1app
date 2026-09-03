@@ -17,6 +17,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from qa.browser import check_popups_live
+from qa.bugreport import group_repeated
+from qa.report_html import write as write_html
 from qa.engine import scan_site
 from qa.export import by_path, write_csv
 from qa.findings import Severity
@@ -100,6 +102,28 @@ def print_report(result) -> None:
         print("RESULT: no errors.")
 
 
+
+def print_bugs(result, device: str) -> None:
+    """Los hallazgos en el formato de bugs del equipo, listos para pegar."""
+    grupos = group_repeated(result, device)
+    if not grupos:
+        return
+
+    print()
+    print("=" * 88)
+    print("BUG REPORT FORMAT  —  Field 1 | Field 2 | Field 3 | Field 4")
+    print("=" * 88)
+    for g in grupos:
+        print()
+        print(f"  {g['bug']}")
+        if len(g["paths"]) > 1:
+            print(f"      on {len(g['paths'])} pages: {', '.join(g['paths'][:6])}"
+                  + (" ..." if len(g["paths"]) > 6 else ""))
+            print("      Same bug on several pages — check with whoever worked on the request.")
+        else:
+            print(f"      {g['paths'][0]}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="EN->ES localization QA for dealer sites.")
     parser.add_argument("base_url", help="Base URL of the site")
@@ -113,6 +137,12 @@ def main() -> int:
                         help="Include terms missing from the glossary (very noisy)")
     parser.add_argument("--skip-glossary-check", action="store_true",
                         help="Scan even if the glossary has errors")
+    parser.add_argument("--html", dest="html_path",
+                        help="Save the report in the team Test & Feedback format")
+    parser.add_argument("--bugs", action="store_true",
+                        help="Print the findings in the team bug-report format")
+    parser.add_argument("--mobile", action="store_true",
+                        help="Request the pages as a phone would, and report Field 1 as M")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -138,6 +168,7 @@ def main() -> int:
         glossary_issues=issues,
         max_pages=args.max_pages,
         report_unknown=args.unknown,
+        mobile=args.mobile,
     )
 
     if result.error:
@@ -157,8 +188,17 @@ def main() -> int:
 
     print_report(result)
 
+    device = "M" if args.mobile else "D"
+    if args.bugs:
+        print_bugs(result, device)
+
+    if args.html_path:
+        bugs = write_html(result, args.html_path, device, "Localization QA Report")
+        print()
+        print(f"HTML report saved to {args.html_path} ({bugs} bugs)")
+
     if args.csv_path:
-        filas = write_csv(result, args.csv_path)
+        filas = write_csv(result, args.csv_path, device)
         print()
         print(f"CSV saved to {args.csv_path} ({filas} rows)")
 

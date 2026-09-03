@@ -300,7 +300,7 @@ def _dedupe(findings: list[Finding]) -> list[Finding]:
 
 def scan_site(base_url: str, paths=None, glossary: Glossary = None,
               glossary_issues=None, max_pages: int = 0, on_progress=None,
-              report_unknown: bool = False) -> ScanResult:
+              report_unknown: bool = False, mobile: bool = False) -> ScanResult:
     """Escanea el sitio completo. Si no se pasan paths, los saca de la navegacion."""
     base_url = normalize_base_url(base_url)
 
@@ -308,7 +308,7 @@ def scan_site(base_url: str, paths=None, glossary: Glossary = None,
         glossary, glossary_issues = load_glossary()
 
     result = ScanResult(base_url=base_url, glossary_issues=glossary_issues or [])
-    session = make_session()
+    session = make_session(mobile=mobile)
     checker = TermChecker(glossary)
 
     if paths is None:

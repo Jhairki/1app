@@ -8,7 +8,15 @@ abrir la pagina y verificarlo.
 import csv
 import io
 
+from qa.bugreport import to_bug_fields
+
 COLUMNS = [
+    # Los cuatro campos del formato de bugs del equipo, primero, para poder
+    # pegarlos directo en el tracker
+    "field_1_device",
+    "field_2_importance",
+    "field_3_type",
+    "field_4_description",
     "path",
     "severity",
     "type",
@@ -25,12 +33,13 @@ COLUMNS = [
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 
 
-def rows(result):
+def rows(result, device: str = "D"):
     """Una fila por hallazgo, los errores primero."""
     for page in sorted(result.pages, key=lambda p: p.path):
         for finding in sorted(page.findings,
                               key=lambda f: SEVERITY_ORDER[f.severity.value]):
             yield {
+                **to_bug_fields(finding, device),
                 "path": page.path,
                 "severity": finding.severity.value,
                 "type": finding.verdict.value,
@@ -48,22 +57,22 @@ def rows(result):
             }
 
 
-def to_csv(result) -> str:
+def to_csv(result, device: str = "D") -> str:
     """El reporte completo como texto CSV."""
     salida = io.StringIO()
     writer = csv.DictWriter(salida, fieldnames=COLUMNS, lineterminator="\n")
     writer.writeheader()
-    writer.writerows(rows(result))
+    writer.writerows(rows(result, device))
     return salida.getvalue()
 
 
-def write_csv(result, path) -> int:
+def write_csv(result, path, device: str = "D") -> int:
     """Guarda el CSV y devuelve cuantas filas escribio.
 
     utf-8-sig: sin el BOM, Excel en Windows abre los acentos como mojibake --
     justo el bug que esta herramienta busca.
     """
-    contenido = to_csv(result)
+    contenido = to_csv(result, device)
     with open(path, "w", encoding="utf-8-sig", newline="") as handle:
         handle.write(contenido)
     return contenido.count("\n") - 1

@@ -87,6 +87,29 @@ Qué detecta:
 No usa el glosario para juzgar traducciones — solo aprovecha sus reglas de
 caracteres para detectar mojibake introducido al copiar.
 
+### El formato de bugs del equipo
+
+Los dos programas pueden emitir los hallazgos en el formato del documento de
+proceso, para pegarlos directo en el tracker:
+
+```
+Field 1 | Field 2 | Field 3 | Field 4
+   D    | Critical|  Link   | External Link needed — "https://oldsite.com/service/"
+```
+
+| Opción | Para qué |
+|---|---|
+| `--bugs` | Imprimir los hallazgos en ese formato |
+| `--html reporte.html` | Reporte con el formato de Test & Feedback: cabecera, tabla de contenido y un bug por hallazgo |
+| `--mobile` | Pide las páginas como un teléfono y reporta el Field 1 como `M` |
+
+**Un bug que sale en varias páginas se reporta una sola vez**, con la lista de
+paths y la nota de consultar con quien trabajó el request — que es lo que pide
+el documento de proceso. En un sitio real eso baja 62 hallazgos a 2 bugs.
+
+El mapeo de veredicto a los campos 2 y 3 está en [qa/bugreport.py](qa/bugreport.py),
+en una tabla de una línea por veredicto, fácil de corregir.
+
 ### Validar el glosario
 
 ```bash

@@ -159,7 +159,7 @@ def _dedupe(findings: list[Finding]) -> list[Finding]:
 
 
 def compare_sites(source_site: str, copy_site: str, paths,
-                  char_rules=None, on_progress=None) -> MigrationResult:
+                  char_rules=None, on_progress=None, mobile: bool = False) -> MigrationResult:
     """Compara una lista de paths entre los dos sitios."""
     source_site = normalize_base_url(source_site)
     copy_site = normalize_base_url(copy_site)
@@ -170,7 +170,7 @@ def compare_sites(source_site: str, copy_site: str, paths,
         result.error = "No paths given. Pass at least one with --paths."
         return result
 
-    session = make_session()
+    session = make_session(mobile=mobile)
     for index, path in enumerate(paths):
         if index > 0:
             polite_pause()

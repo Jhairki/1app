@@ -16,8 +16,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from qa.bugreport import group_repeated
+from qa.report_html import write as write_html
 from qa.export import by_path, write_csv
 from qa.glossary import load_glossary
+from qa.browser import check_popups_live
 from qa.migration import compare_sites
 
 MARKS = {"error": "X", "warning": "!", "info": "i"}
@@ -112,6 +115,28 @@ def print_report(result) -> None:
         print("RESULT: no errors. The copy matches the source.")
 
 
+
+def print_bugs(result, device: str) -> None:
+    """Los hallazgos en el formato de bugs del equipo, listos para pegar."""
+    grupos = group_repeated(result, device)
+    if not grupos:
+        return
+
+    print()
+    print("=" * 88)
+    print("BUG REPORT FORMAT  —  Field 1 | Field 2 | Field 3 | Field 4")
+    print("=" * 88)
+    for g in grupos:
+        print()
+        print(f"  {g['bug']}")
+        if len(g["paths"]) > 1:
+            print(f"      on {len(g['paths'])} pages: {', '.join(g['paths'][:6])}"
+                  + (" ..." if len(g["paths"]) > 6 else ""))
+            print("      Same bug on several pages — check with whoever worked on the request.")
+        else:
+            print(f"      {g['paths'][0]}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Stare and Compare: check a migrated site against its source."
@@ -124,6 +149,14 @@ def main() -> int:
     parser.add_argument("--paths-file", help="File with one path per line")
     parser.add_argument("--csv", dest="csv_path", help="Save the report as CSV (Excel)")
     parser.add_argument("--json", dest="json_path", help="Save the report as JSON")
+    parser.add_argument("--popups", action="store_true",
+                        help="Use a real browser to check popups open on both sites (slow)")
+    parser.add_argument("--html", dest="html_path",
+                        help="Save the report in the team Test & Feedback format")
+    parser.add_argument("--bugs", action="store_true",
+                        help="Print the findings in the team bug-report format")
+    parser.add_argument("--mobile", action="store_true",
+                        help="Request the pages as a phone would, and report Field 1 as M")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -142,15 +175,36 @@ def main() -> int:
     glossary, _ = load_glossary()
 
     result = compare_sites(args.source, args.copy_site, paths,
-                           char_rules=glossary.char_rules)
+                           char_rules=glossary.char_rules, mobile=args.mobile)
     if result.error:
         print(f"Comparison failed: {result.error}")
         return 1
 
+    if args.popups:
+        print()
+        print("Checking popups with a real browser (this takes a while)...")
+        for page in result.pages:
+            if page.error:
+                continue
+            # El original hace de referencia, igual que la pagina inglesa en scan.py
+            hallazgos = check_popups_live(page.copy_url, page.source_url, page.path)
+            if hallazgos:
+                page.findings.extend(hallazgos)
+                print(f"  {page.path}: {len(hallazgos)} behavior findings")
+
     print_report(result)
 
+    device = "M" if args.mobile else "D"
+    if args.bugs:
+        print_bugs(result, device)
+
+    if args.html_path:
+        bugs = write_html(result, args.html_path, device, "Stare and Compare Report")
+        print()
+        print(f"HTML report saved to {args.html_path} ({bugs} bugs)")
+
     if args.csv_path:
-        filas = write_csv(result, args.csv_path)
+        filas = write_csv(result, args.csv_path, device)
         print()
         print(f"CSV saved to {args.csv_path} ({filas} rows)")
 

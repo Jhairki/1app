@@ -19,6 +19,15 @@ REQUEST_DELAY_SECONDS = 1.0
 REQUEST_TIMEOUT_SECONDS = 30
 USER_AGENT = "LocaleQABot/2.0"
 
+# Muchos sitios sirven HTML distinto a un movil. Para que el Field 1 del
+# reporte diga M con fundamento, hay que pedir la pagina como pide un movil,
+# no solo etiquetar el reporte.
+MOBILE_USER_AGENT = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 "
+    "Safari/604.1 LocaleQABot/2.0"
+)
+
 
 def normalize_base_url(url: str) -> str:
     url = (url or "").strip()
@@ -63,9 +72,9 @@ def to_relative_path(base_url: str, href: str):
     return path
 
 
-def make_session() -> requests.Session:
+def make_session(mobile: bool = False) -> requests.Session:
     session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
+    session.headers.update({"User-Agent": MOBILE_USER_AGENT if mobile else USER_AGENT})
     return session
 
 
