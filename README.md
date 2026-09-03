@@ -79,6 +79,7 @@ deben ser **iguales**, no se traduce nada. Cualquier diferencia es sospechosa.
 | `--copy` | Dominio del sitio migrado, normalmente el del CMS |
 | `--paths / /service/` | Los paths a comparar, los mismos en los dos sitios |
 | `--paths-file paths.txt` | Un path por línea, para lotes grandes |
+| `--links` | Verificar que los links internos de la copia resuelvan y lleven al mismo lugar que en el original (lento) |
 | `--csv` · `--json` | Exportar el reporte |
 
 Qué detecta:
@@ -91,6 +92,33 @@ Qué detecta:
 | Contenido de más | Está en la copia y no en el original |
 | Diferencia de cantidad | Una sección entera que falta, aunque los hallazgos sueltos no lo dejen ver |
 | Claves, caracteres, popups | Los mismos checks de `scan.py`, que aplican igual |
+| Link roto (con `--links`) | Un link interno de la copia que no resuelve — 404 o cualquier otro error |
+| Link a otra sección (con `--links`) | El link existe y resuelve, pero su destino tiene un título muy distinto entre el original y la copia — puede estar mal cableado |
+
+#### `--links`: que los links funcionen y lleven al lugar correcto
+
+Dos preguntas distintas, cubiertas con un mismo pedido de red:
+
+1. **¿Resuelve?** Se le pide la URL de verdad al CMS y se reporta si devuelve
+   404 o cualquier otro error. Esto reemplaza a un chequeo por patrón (por
+   ejemplo, "¿termina en `.htm`?"): la convención de rutas de este CMS
+   (`/seccion/index.htm`) es justamente eso, una convención — un link puede
+   seguirla y aun así no existir, o no seguirla y funcionar igual. Pedirle la
+   URL al servidor es la única forma de saberlo con certeza.
+
+2. **¿Lleva al mismo lugar?** Cada plataforma arma sus rutas distinto, así
+   que la URL de destino casi nunca va a ser igual entre el sitio original y
+   la copia — comparar URLs no sirve. En cambio se compara el `<title>` (o el
+   `<h1>`) de la página de destino: como en un Stare & Compare el contenido
+   debe ser una copia textual, ese título debería sobrevivir casi intacto. Si
+   no se parece en nada, el link probablemente quedó apuntando a otra
+   sección. **Esto es una heurística**, no una regla exacta — un título
+   distinto también puede ser una decisión legítima del builder — así que se
+   reporta como `Question` en el bug report, no como `Critical`.
+
+El mismo link de navegación se repite en cada página comparada; los pedidos
+se cachean por URL durante toda la corrida para no pedir 8 veces el mismo
+link porque aparece en 8 páginas.
 
 No usa el glosario para juzgar traducciones — solo aprovecha sus reglas de
 caracteres para detectar mojibake introducido al copiar.

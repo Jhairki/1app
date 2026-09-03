@@ -12,6 +12,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import requests
+
+import qa.checks.links as links
 import qa.migration as migration
 from qa.findings import Verdict
 from qa.glossary import load_glossary
@@ -117,6 +120,79 @@ def main() -> int:
     limpio = migration.compare_sites(ORIGEN, COPIA, ["/"], char_rules=glossary.char_rules)
     ok &= revisar("cero hallazgos", not limpio.findings,
                   "; ".join(f.verdict.value for f in limpio.findings))
+
+    print("\n7. Verificacion de links (--links)")
+    ORIGINAL_LINKS = """
+    <html><head><title>Home</title></head><body>
+      <a href="/used-vehicles/">Used Vehicles</a>
+      <a href="/contact/">Contact Us</a>
+    </body></html>
+    """
+    MIGRADA_LINKS = """
+    <html><head><title>Home</title></head><body>
+      <a href="/inventory/index.htm">Used Vehicles</a>
+      <a href="/contact-bad/">Contact Us</a>
+      <a href="/broken/">Old Specials</a>
+    </body></html>
+    """
+    paginas[ORIGEN] = ORIGINAL_LINKS
+    paginas[COPIA] = MIGRADA_LINKS
+
+    RESPUESTAS = {
+        # Mismo destino, titulo parecido aunque no identico -> no es bug
+        "https://new.cms.dealer.com/inventory/index.htm":
+            (200, "<title>Used Vehicles For Sale | Mojix</title>"),
+        "https://oldsite.example.com/used-vehicles/":
+            (200, "<title>Used Vehicles For Sale</title>"),
+        # Mismo texto de link, pero el destino habla de otra cosa -> si es bug
+        "https://new.cms.dealer.com/contact-bad/":
+            (200, "<title>Wrong Section</title>"),
+        "https://oldsite.example.com/contact/":
+            (200, "<title>Contact Us - Schedule a Visit</title>"),
+        # Link que no resuelve en la copia
+        "https://new.cms.dealer.com/broken/": (404, ""),
+    }
+
+    class FakeResponse:
+        def __init__(self, status_code, html):
+            self.status_code = status_code
+            self.text = html
+
+        @property
+        def ok(self):
+            return self.status_code < 400
+
+    def fake_get(self, url, timeout=None):
+        status, html = RESPUESTAS.get(url, (404, ""))
+        return FakeResponse(status, html)
+
+    requests.Session.get = fake_get
+    links.LINK_CHECK_DELAY_SECONDS = 0  # no pausar en la prueba
+
+    con_links = migration.compare_sites(ORIGEN, COPIA, ["/"],
+                                        char_rules=glossary.char_rules, verify_links=True)
+    hallazgos_links = con_links.findings
+
+    rotos = [f for f in hallazgos_links if f.verdict == Verdict.BROKEN_LINK]
+    ok &= revisar("detecta el link roto (404)",
+                  any("/broken/" in f.meta.get("url", "") for f in rotos),
+                  "; ".join(f.meta.get("url", "") for f in rotos))
+
+    mismatches = [f for f in hallazgos_links if f.verdict == Verdict.LINK_MISMATCH]
+    ok &= revisar("detecta el link que lleva a otra seccion",
+                  any(f.meta.get("copy_url", "").endswith("/contact-bad/") for f in mismatches),
+                  "; ".join(f.meta.get("copy_url", "") for f in mismatches))
+    ok &= revisar("no marca el link cuyo destino coincide (aunque el titulo no sea identico)",
+                  not any(f.meta.get("copy_url", "").endswith("/inventory/index.htm")
+                         for f in mismatches),
+                  "; ".join(f.meta.get("copy_url", "") for f in mismatches))
+
+    print("\n8. Sin --links no se pide nada de eso")
+    sin_links = migration.compare_sites(ORIGEN, COPIA, ["/"], char_rules=glossary.char_rules)
+    ok &= revisar("no aparecen hallazgos de link roto ni de destino",
+                  not any(f.verdict in (Verdict.BROKEN_LINK, Verdict.LINK_MISMATCH)
+                         for f in sin_links.findings),
+                  "; ".join(f.verdict.value for f in sin_links.findings))
 
     print("\n" + "=" * 68)
     print("TODO OK" if ok else "HAY FALLAS")

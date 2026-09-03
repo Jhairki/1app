@@ -44,6 +44,8 @@ class Verdict(str, Enum):
     CONTENT_EXTRA = "content_extra"
     SOURCE_LEAK = "source_leak"
     COUNT_MISMATCH = "count_mismatch"
+    BROKEN_LINK = "broken_link"
+    LINK_MISMATCH = "link_mismatch"
     # Estilo
     STYLE_VIOLATION = "style_violation"
     OK = "ok"

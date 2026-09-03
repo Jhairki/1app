@@ -27,6 +27,7 @@ import requests
 from qa.checks.broken_keys import find_broken_keys, keys_in
 from qa.checks.entities import find_html_entities
 from qa.checks.fidelity import compare_counts, compare_texts, find_source_leaks
+from qa.checks.links import check_broken_links, check_link_destinations
 from qa.checks.mojibake import find_char_issues
 from qa.checks.popups import check_popups
 from qa.extract import extract_units, make_soup, pair_units, visible_text
@@ -92,7 +93,8 @@ class MigrationResult:
 
 
 def compare_page(source_site: str, copy_site: str, path: str,
-                 session: requests.Session, char_rules=None) -> PagePair:
+                 session: requests.Session, char_rules=None,
+                 verify_links: bool = False, link_cache: dict = None) -> PagePair:
     """Compara un mismo path en los dos sitios."""
     source_url = urljoin(source_site, path.lstrip("/"))
     copy_url = urljoin(copy_site, path.lstrip("/"))
@@ -139,6 +141,14 @@ def compare_page(source_site: str, copy_site: str, path: str,
     findings += compare_counts(source_units, copy_units, path)
     findings += check_popups(copy_units, source_units, path)
 
+    # --- Links: que funcionen, y que lleven al mismo lugar que en el original ---
+    # Aparte de los otros checks porque pega al sitio en vivo por cada link, no
+    # solo por cada pagina: es lento, por eso queda detras de un flag.
+    if verify_links:
+        cache = link_cache if link_cache is not None else {}
+        findings += check_broken_links(copy_units, copy_site, path, session, cache)
+        findings += check_link_destinations(pairs, source_site, copy_site, path, session, cache)
+
     result.findings = _dedupe(findings)
     return result
 
@@ -159,7 +169,8 @@ def _dedupe(findings: list[Finding]) -> list[Finding]:
 
 
 def compare_sites(source_site: str, copy_site: str, paths,
-                  char_rules=None, on_progress=None, mobile: bool = False) -> MigrationResult:
+                  char_rules=None, on_progress=None, mobile: bool = False,
+                  verify_links: bool = False) -> MigrationResult:
     """Compara una lista de paths entre los dos sitios."""
     source_site = normalize_base_url(source_site)
     copy_site = normalize_base_url(copy_site)
@@ -171,13 +182,18 @@ def compare_sites(source_site: str, copy_site: str, paths,
         return result
 
     session = make_session(mobile=mobile)
+    # Una sola cache de links para toda la corrida: la navegacion se repite en
+    # cada pagina, y sin compartirla se verificaria el mismo link una vez por
+    # pagina en la que aparece.
+    link_cache: dict = {}
     for index, path in enumerate(paths):
         if index > 0:
             polite_pause()
         logger.info("Comparing %s (%d/%d)", path, index + 1, len(paths))
         if on_progress is not None:
             on_progress(index, len(paths), path)
-        result.pages.append(compare_page(source_site, copy_site, path, session, char_rules))
+        result.pages.append(compare_page(source_site, copy_site, path, session, char_rules,
+                                         verify_links=verify_links, link_cache=link_cache))
 
     if on_progress is not None:
         on_progress(len(paths), len(paths), "")

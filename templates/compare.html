@@ -51,6 +51,14 @@
       </span>
     </label>
 
+    <label style="display:flex;align-items:flex-start;gap:9px;font-weight:500;margin-bottom:18px">
+      <input type="checkbox" name="links" value="1" style="width:auto;margin-top:3px">
+      <span>Check links
+        <span class="faint">— confirm each internal link on the copy resolves, and leads to the
+          same destination as on the source. Adds a request per link, cached across pages.</span>
+      </span>
+    </label>
+
     <button type="submit">Compare</button>
   </form>
 </div>
@@ -75,6 +83,19 @@
       <tr><td>Broken CMS labels</td><td>Internal keys and unresolved placeholders leaking onto the page</td></tr>
       <tr><td>Characters</td><td>Mojibake and HTML entities introduced while copying</td></tr>
       <tr><td>Popups</td><td>Popups from the source that are not on the migrated page</td></tr>
+      <tr>
+        <td>Broken link <span class="faint">(with Check links)</span></td>
+        <td>An internal link on the copy that does not resolve — 404 or any other error</td>
+      </tr>
+      <tr>
+        <td>Link may lead elsewhere <span class="faint">(with Check links)</span></td>
+        <td>
+          The link's destination page has a very different title on the copy than on the
+          source — it may have been wired to the wrong section. This one is a heuristic
+          (title similarity, not an exact rule), so it is reported as a Question, not a
+          Critical bug.
+        </td>
+      </tr>
     </table>
   </div>
   <p class="hint" style="margin-top:16px">

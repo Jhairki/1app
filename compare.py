@@ -152,6 +152,9 @@ def main() -> int:
     parser.add_argument("--json", dest="json_path", help="Save the report as JSON")
     parser.add_argument("--popups", action="store_true",
                         help="Use a real browser to check popups open on both sites (slow)")
+    parser.add_argument("--links", action="store_true",
+                        help="Check that internal links on the copy resolve, and lead to "
+                             "the same destination as on the source (slow)")
     parser.add_argument("--shots", action="store_true",
                         help="Attach a cropped screenshot of each bug to the HTML report (slow)")
     parser.add_argument("--html", dest="html_path",
@@ -177,8 +180,12 @@ def main() -> int:
     # aprovechan sus reglas de caracteres para detectar mojibake introducido.
     glossary, _ = load_glossary()
 
+    if args.links:
+        print("Checking links against both sites (this takes a while)...")
+
     result = compare_sites(args.source, args.copy_site, paths,
-                           char_rules=glossary.char_rules, mobile=args.mobile)
+                           char_rules=glossary.char_rules, mobile=args.mobile,
+                           verify_links=args.links)
     if result.error:
         print(f"Comparison failed: {result.error}")
         return 1

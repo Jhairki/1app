@@ -70,6 +70,11 @@ MAPEO = {
 
     # --- Enlaces ---
     Verdict.SOURCE_LEAK:       (CRITICAL, LINK,    "External Link needed"),
+    Verdict.BROKEN_LINK:       (CRITICAL, LINK,    "Broken Link"),
+    # Se decide por parecido de titulo, no por una regla exacta -- puede ser un
+    # link mal armado o simplemente una pagina que se llama distinto. Question,
+    # no Critical, hasta que alguien lo mire.
+    Verdict.LINK_MISMATCH:     (QUESTION, LINK,    "Link may lead to the wrong page"),
 
     # --- Popups ---
     Verdict.POPUP_MISSING:     (CRITICAL, CONTENT, "Missing Content, popup not migrated"),

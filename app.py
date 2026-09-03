@@ -223,13 +223,15 @@ def compare():
         mobile = bool(request.form.get("mobile"))
         glossary, _ = load_glossary()
 
+        verify_links = bool(request.form.get("links"))
+
         job_id = _nuevo_job("compare", f"{source} → {copy_site}", len(paths), mobile)
         _update(job_id, want_shots=bool(request.form.get("shots")))
         threading.Thread(
             target=_run,
             args=(job_id, lambda cb: compare_sites(
                 source, copy_site, paths, char_rules=glossary.char_rules,
-                on_progress=cb, mobile=mobile)),
+                on_progress=cb, mobile=mobile, verify_links=verify_links)),
             daemon=True,
         ).start()
         return redirect(url_for("job", job_id=job_id))
