@@ -1,0 +1,41 @@
+pattern,replacement,rule_type,severity,auto_fixable,notes
+Û,ó,mojibake,error,yes,
+·,á,mojibake,error,yes,ojo: el punto medio es válido en otros contextos
+Ì,í,mojibake,error,yes,
+È,é,mojibake,error,yes,
+Ò,ñ,mojibake,error,yes,
+â€™,’,mojibake,error,yes,UTF-8 leído como CP1252 — el original es la comilla derecha U+2019
+�,,replacement_char,error,no,U+FFFD — el carácter original se perdió; requiere revisión humana
+??,,lost_char,error,no,acento perdido — candidatos: ó á í ú é ¡
+&#225;,á,html_entity,error,yes,
+&#233;,é,html_entity,error,yes,
+&#237;,í,html_entity,error,yes,
+&#243;,ó,html_entity,error,yes,
+&#250;,ú,html_entity,error,yes,
+&#193;,Á,html_entity,error,yes,
+&#201;,É,html_entity,error,yes,
+&#205;,Í,html_entity,error,yes,
+&#211;,Ó,html_entity,error,yes,
+&#218;,Ú,html_entity,error,yes,
+&#241;,ñ,html_entity,error,yes,
+&#209;,Ñ,html_entity,error,yes,
+&#252;,ü,html_entity,error,yes,
+&#220;,Ü,html_entity,error,yes,
+&#191;,¿,html_entity,error,yes,
+&#161;,¡,html_entity,error,yes,
+&#38;,&,html_entity,error,yes,
+&#60;,<,html_entity,error,yes,
+&#62;,>,html_entity,error,yes,
+&#34;,"""",html_entity,error,yes,
+&#39;,',html_entity,error,yes,el glosario original traía la celda vacía
+&#169;,©,html_entity,error,yes,
+&#174;,®,html_entity,error,yes,
+&#8364;,€,html_entity,error,yes,
+&#176;,°,html_entity,error,yes,
+&#8482;,™,html_entity,error,yes,
+&#8212;,—,html_entity,error,yes,
+&#171;,«,html_entity,error,yes,REVISAR — el glosario mostraba comilla doble
+&#187;,»,html_entity,error,yes,REVISAR — el glosario mostraba comilla doble
+&#42;,*,html_entity,error,yes,
+kilómetros,,unit,error,no,"manejado por qa/checks/units.py — requiere comparar el valor con la página EN, no es buscar-y-reemplazar"
+Mantenimineto,Mantenimiento,typo,error,yes,

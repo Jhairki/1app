@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Glossary</h1>
+<p class="sub">
+  The source of truth for every translation check. Edit the CSVs in
+  <span class="mono">data/</span>; this page reflects what is loaded right now.
+</p>
+
+<div class="stats">
+  <div class="stat"><div class="n">{{ glossary|length }}</div><div class="l">terms</div></div>
+  <div class="stat"><div class="n">{{ glossary.char_rules|length }}</div><div class="l">character rules</div></div>
+  <div class="stat {% if counts.error %}error{% else %}ok{% endif %}">
+    <div class="n">{{ counts.error }}</div><div class="l">errors</div>
+  </div>
+  <div class="stat warning"><div class="n">{{ counts.warning }}</div><div class="l">warnings</div></div>
+  <div class="stat"><div class="n">{{ glossary.pending|length }}</div><div class="l">pending</div></div>
+</div>
+
+{% if counts.error %}
+  <div class="banner error">
+    <strong>The glossary cannot be used.</strong>
+    Fix the errors in <span class="mono">data/glossary.csv</span> and
+    <span class="mono">data/char_rules.csv</span>, then reload this page.
+  </div>
+{% endif %}
+
+{% if issues %}
+<div class="panel">
+  <h2>Validation</h2>
+  {% for i in issues %}
+    <div class="finding {{ i.level.value }}">
+      <div class="head">
+        <span class="tag">{{ i.level.value }}</span>
+        <span class="where">{{ i.source }}{% if i.row %}:{{ i.row }}{% endif %} — {{ i.key }}</span>
+      </div>
+      <div class="msg">{{ i.message }}</div>
+    </div>
+  {% endfor %}
+</div>
+{% else %}
+  <div class="banner ok"><strong>The glossary is clean.</strong></div>
+{% endif %}
+
+<div class="panel">
+  <h2>Terms <span class="faint" style="font-weight:400">— data/glossary.csv</span></h2>
+  <input type="search" id="qterms" placeholder="Filter terms..." autocomplete="off"
+         style="margin-bottom:14px;max-width:320px">
+  <div class="scroll">
+    <table id="terms">
+      <thead>
+        <tr>
+          <th>English</th><th>Spanish (official)</th><th>Accepted</th>
+          <th style="width:130px">Policy</th><th style="width:90px">Context</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for e in glossary.entries %}
+        <tr>
+          <td class="mono">{{ e.english }}</td>
+          <td class="mono">{{ e.spanish_canonical or '—' }}</td>
+          <td class="mono faint">{{ e.spanish_accepted|join(' | ') }}</td>
+          <td class="mono faint">{{ e.policy.value }}</td>
+          <td class="faint">{{ e.context }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Character rules <span class="faint" style="font-weight:400">— data/char_rules.csv</span></h2>
+  <p class="hint" style="margin:-10px 0 14px">
+    Rows of type <span class="mono">html_entity</span> and <span class="mono">unit</span> stay here
+    for reference only: another check covers them — generic entity detection, and comparing the
+    value against the English page.
+  </p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Pattern</th><th>Correct</th><th style="width:130px">Type</th>
+            <th style="width:100px">Auto-fixable</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+      {% for r in glossary.char_rules %}
+        <tr>
+          <td class="mono">{{ r.pattern }}</td>
+          <td class="mono">{{ r.replacement or '—' }}</td>
+          <td class="mono faint">{{ r.rule_type }}</td>
+          <td class="faint">{{ 'yes' if r.auto_fixable else 'no' }}</td>
+          <td class="faint">{{ r.notes }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const q = document.getElementById('qterms');
+  const filas = [...document.querySelectorAll('#terms tbody tr')];
+  q.addEventListener('input', () => {
+    const t = q.value.trim().toLowerCase();
+    filas.forEach(f => { f.hidden = t && !f.innerText.toLowerCase().includes(t); });
+  });
+</script>
+
+{% endblock %}

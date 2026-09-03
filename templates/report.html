@@ -1,309 +1,233 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Locale Link Verifier</title>
-  <style>
-    :root {
-      --bg: #f4f6f8;
-      --surface: #ffffff;
-      --text: #1a1a2e;
-      --muted: #5c6370;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --border: #e2e8f0;
-      --error-bg: #fef2f2;
-      --error-text: #b91c1c;
-      --warn-bg: #fffbeb;
-      --warn-text: #92400e;
-      --ok-bg: #ecfdf5;
-      --ok-text: #047857;
-    }
+{% extends "base.html" %}
+{% block content %}
 
-    * { box-sizing: border-box; }
+{% if error %}
+  <div class="banner error"><strong>The scan failed.</strong> {{ error }}</div>
+  <p><a href="{{ url_for('home') }}">&larr; Try again</a></p>
+{% else %}
 
-    body {
-      margin: 0;
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-    }
+<p class="faint" style="font-size:13px;margin:0 0 10px">
+  <a href="{{ url_for('localization' if active == 'localization' else 'compare') }}">&larr; Run another one</a>
+</p>
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem 1.25rem 3rem;
-    }
-
-    header { margin-bottom: 2rem; }
-
-    h1 {
-      margin: 0 0 0.5rem;
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      margin: 0;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 0.65rem 0.85rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 1rem;
-    }
-
-    input:focus {
-      outline: 2px solid rgba(37, 99, 235, 0.35);
-      border-color: var(--accent);
-    }
-
-    button {
-      margin-top: 1rem;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 0.65rem 1.25rem;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button:hover { background: var(--accent-hover); }
-
-    .alert {
-      padding: 0.85rem 1rem;
-      border-radius: 6px;
-      margin-bottom: 1.5rem;
-    }
-
-    .alert-error {
-      background: var(--error-bg);
-      color: var(--error-text);
-      border: 1px solid #fecaca;
-    }
-
-    .alert-ok {
-      background: var(--ok-bg);
-      color: var(--ok-text);
-      border: 1px solid #a7f3d0;
-    }
-
-    .alert-warn {
-      background: var(--warn-bg);
-      color: var(--warn-text);
-      border: 1px solid #fde68a;
-    }
-
-    h2 {
-      margin: 0 0 1rem;
-      font-size: 1.25rem;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 0.65rem 0.75rem;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-    }
-
-    th {
-      background: #f8fafc;
-      font-weight: 600;
-    }
-
-    tbody tr:last-child td { border-bottom: none; }
-
-    .mono {
-      font-family: Consolas, "Courier New", monospace;
-      word-break: break-all;
-    }
-
-    .stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .stat {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      min-width: 140px;
-    }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .stat-label {
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    .empty {
-      color: var(--muted);
-      font-style: italic;
-    }
-
-    .meta {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      background: var(--error-bg);
-      color: var(--error-text);
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Locale Link Verifier</h1>
-      <p class="subtitle">LangChain workflow for Spanish locale QA on dealer sites.</p>
-    </header>
-
-    <div class="card">
-      <form method="post" action="/">
-        <label for="base_url">Base URL</label>
-        <input
-          type="text"
-          id="base_url"
-          name="base_url"
-          placeholder="https://mojix.cms.dealer.com/"
-          value="{{ base_url }}"
-          required
-        >
-        <button type="submit">Run Scan</button>
-      </form>
-    </div>
-
-    {% if error %}
-    <div class="alert alert-error">{{ error }}</div>
+<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:18px">
+  <h1 style="margin:0">
+    {% if result.source_site is defined %}
+      <span class="mono" style="font-size:16px">{{ result.source_site }}</span>
+      <span class="faint">&rarr;</span>
+      <span class="mono" style="font-size:16px">{{ result.copy_site }}</span>
+    {% else %}
+      {{ result.base_url }}
     {% endif %}
+  </h1>
+  <a href="{{ url_for('job_html', job_id=job_id) }}" target="_blank" rel="noopener"
+     style="font-size:13.5px">Open bug report</a>
+  <a href="{{ url_for('job_csv', job_id=job_id) }}" style="font-size:13.5px">Download CSV</a>
+</div>
 
-    {% if base_url and not error %}
-    <div class="meta">Scanned: <strong>{{ base_url }}</strong></div>
-    {% endif %}
+<div class="stats">
+  <div class="stat {% if summary.errors %}error{% else %}ok{% endif %}">
+    <div class="n">{{ summary.errors }}</div><div class="l">errors</div>
+  </div>
+  <div class="stat warning">
+    <div class="n">{{ summary.warnings }}</div><div class="l">warnings</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.infos }}</div><div class="l">informational</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.auto_fixable }}</div><div class="l">auto-fixable</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.pages_scanned }}</div><div class="l">pages</div>
+  </div>
+  <div class="stat">
+    <div class="n">{{ summary.units_checked }}</div><div class="l">texts checked</div>
+  </div>
+</div>
 
-    {% if summary %}
-    <div class="card">
-      <h2>Summary</h2>
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-value">{{ summary.total_paths }}</div>
-          <div class="stat-label">Navigation paths</div>
+{% if summary.pages_failed %}
+  <div class="banner warning">
+    <strong>{{ summary.pages_failed }} pages could not be fetched.</strong>
+    They are listed below with the reason.
+  </div>
+{% endif %}
+
+{% if not summary.errors %}
+  <div class="banner ok"><strong>No errors.</strong> Nothing blocks publishing.</div>
+{% endif %}
+
+{% if bugs %}
+<div class="panel">
+  <h2>Bug report format <span class="faint" style="font-weight:400">— {{ bugs|length }} bugs, ready to paste</span></h2>
+  {% for b in bugs %}
+    {% set partes = b.bug.split(' | ', 3) %}
+    <div class="bugline {{ 'error' if partes[1] == 'Critical' else ('warning' if partes[1] == 'Issue' else 'info') }}">
+      <div class="msg mono" style="font-size:13px">{{ b.bug }}</div>
+      {% if b.paths|length > 1 %}
+        <div class="where" style="margin-top:8px">
+          on {{ b.paths|length }} pages: {{ b.paths[:6]|join(', ') }}{% if b.paths|length > 6 %} …{% endif %}
         </div>
-        <div class="stat">
-          <div class="stat-value">{{ summary.affected_pages }}</div>
-          <div class="stat-label">Affected pages</div>
+        <div class="where" style="color:var(--warning)">
+          Same bug on several pages — check with whoever worked on the request.
         </div>
-        <div class="stat">
-          <div class="stat-value">{{ summary.broken_count }}</div>
-          <div class="stat-label">Broken labels</div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if paths %}
-    <div class="card">
-      <h2>Navigation Links Found ({{ paths|length }})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Relative Path</th>
-            <th>Spanish URL</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for path in paths %}
-          <tr>
-            <td>{{ loop.index }}</td>
-            <td class="mono">{{ path }}</td>
-            <td class="mono">{{ spanish_urls.get(path, '—') }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% elif base_url and not error %}
-    <div class="card">
-      <h2>Navigation Links Found</h2>
-      <p class="empty">No navigation links were found. Check the URL and that the page contains <code>div.header-navigation</code> or <code>&lt;nav&gt;</code>.</p>
-    </div>
-    {% endif %}
-
-    <div class="card">
-      <h2>Broken Label Report</h2>
-      {% if findings %}
-      <div class="alert alert-warn">
-        Found {{ findings|length }} broken label(s) across the scanned pages.
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Path</th>
-            <th>Broken Label (ES page)</th>
-            <th>English Label</th>
-            <th>Expected Spanish (CSV)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in findings %}
-          <tr>
-            <td class="mono">{{ item.path }}</td>
-            <td><span class="badge">Broken</span> <span class="mono">{{ item.broken_text }}</span></td>
-            <td class="mono">{{ item.english_text or '—' }}</td>
-            <td class="mono">{{ item.expected_spanish or '—' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% elif paths %}
-      <div class="alert alert-ok">No broken Spanish locale labels detected.</div>
       {% else %}
-      <p class="empty">No pages were verified.</p>
+        <div class="where" style="margin-top:8px">{{ b.paths[0] }}</div>
       {% endif %}
     </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if findings %}
+<div class="toolbar">
+  <div class="chips">
+    <button type="button" class="chip sev-error on" data-sev="error">
+      Errors <span class="count">{{ summary.errors }}</span>
+    </button>
+    <button type="button" class="chip sev-warning on" data-sev="warning">
+      Warnings <span class="count">{{ summary.warnings }}</span>
+    </button>
+    <button type="button" class="chip sev-info on" data-sev="info">
+      Info <span class="count">{{ summary.infos }}</span>
+    </button>
+    <span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
+    {% for verdict, count in summary.by_verdict.items() %}
+      <button type="button" class="chip on" data-verdict="{{ verdict }}">
+        {{ labels.get(verdict, verdict) }} <span class="count">{{ count }}</span>
+      </button>
+    {% endfor %}
+    <span class="searchbox">
+      <input type="search" id="q" placeholder="Filter by text..." autocomplete="off">
+    </span>
   </div>
-</body>
-</html>
+</div>
+
+<p class="faint" id="tally" style="font-size:12.5px;margin:12px 0 0"></p>
+{% endif %}
+
+{% for page in result.pages %}
+  {% if page.error %}
+    <div class="pagegroup">
+      <div class="pagehead"><span class="path">{{ page.path }}</span></div>
+      <div class="banner error">{{ page.error }}</div>
+    </div>
+  {% elif page.findings %}
+    <div class="pagegroup" data-page>
+      <div class="pagehead">
+        <span class="caret">&#9660;</span>
+        <span class="path">{{ page.path }}</span>
+        <span class="counts">
+          {% set e = page.findings|selectattr('severity.value','equalto','error')|list|length %}
+          {% set w = page.findings|selectattr('severity.value','equalto','warning')|list|length %}
+          {% set i = page.findings|selectattr('severity.value','equalto','info')|list|length %}
+          {% if e %}<span class="pill error">{{ e }} errors</span>{% endif %}
+          {% if w %}<span class="pill warning">{{ w }} warnings</span>{% endif %}
+          {% if i %}<span class="pill info">{{ i }} info</span>{% endif %}
+        </span>
+        <span class="links">
+          {% if page.copy_url is defined %}
+            <a href="{{ page.copy_url }}" target="_blank" rel="noopener">migrated</a> ·
+            <a href="{{ page.source_url }}" target="_blank" rel="noopener">source</a>
+          {% else %}
+            <a href="{{ page.spanish_url }}" target="_blank" rel="noopener">ES page</a> ·
+            <a href="{{ page.english_url }}" target="_blank" rel="noopener">EN page</a>
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="findings">
+      {% for f in page.findings|sort(attribute='severity.value') %}
+        <div class="finding {{ f.severity.value }}"
+             data-sev="{{ f.severity.value }}" data-verdict="{{ f.verdict.value }}">
+          <div class="head">
+            <span class="tag">{{ labels.get(f.verdict.value, f.verdict.value) }}</span>
+            {% if f.context %}<span class="where">{{ f.context[:90] }}</span>{% endif %}
+          </div>
+          <div class="msg">{{ f.message }}</div>
+          {% if f.found or f.expected %}
+          <div class="cmp">
+            {% if f.found %}
+              <div class="line found"><span class="k">found</span><span>{{ f.found }}</span></div>
+            {% endif %}
+            {% if f.expected %}
+              <div class="line want"><span class="k">expected</span><span>{{ f.expected }}</span></div>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if f.auto_fixable %}
+            <span class="fix"><b>auto-fix</b> {{ f.fixed }}</span>
+          {% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}
+
+{% if findings %}
+<div class="empty" id="noresults" hidden>
+  <div class="big">Nothing matches these filters</div>
+  <div>Turn a chip back on or clear the search box.</div>
+</div>
+{% endif %}
+
+<script>
+  const chips = [...document.querySelectorAll('.chip')];
+  const cards = [...document.querySelectorAll('.finding')];
+  const groups = [...document.querySelectorAll('[data-page]')];
+  const search = document.getElementById('q');
+  const tally = document.getElementById('tally');
+  const noresults = document.getElementById('noresults');
+
+  function activos(attr) {
+    return new Set(chips.filter(c => c.dataset[attr] && c.classList.contains('on'))
+                        .map(c => c.dataset[attr]));
+  }
+
+  function aplicar() {
+    const sevs = activos('sev');
+    const verdicts = activos('verdict');
+    const texto = (search.value || '').trim().toLowerCase();
+    let visibles = 0;
+
+    for (const card of cards) {
+      const coincide =
+        sevs.has(card.dataset.sev) &&
+        verdicts.has(card.dataset.verdict) &&
+        (!texto || card.innerText.toLowerCase().includes(texto));
+      card.hidden = !coincide;
+      if (coincide) visibles++;
+    }
+
+    // Una pagina sin hallazgos visibles se esconde entera
+    for (const g of groups) {
+      const quedan = [...g.querySelectorAll('.finding')].some(c => !c.hidden);
+      g.hidden = !quedan;
+    }
+
+    tally.textContent = visibles === cards.length
+      ? `${cards.length} findings`
+      : `${visibles} of ${cards.length} findings shown`;
+    if (noresults) noresults.hidden = visibles > 0;
+  }
+
+  chips.forEach(c => c.addEventListener('click', () => {
+    c.classList.toggle('on');
+    aplicar();
+  }));
+  search.addEventListener('input', aplicar);
+
+  // Plegar y desplegar cada pagina
+  document.querySelectorAll('.pagehead').forEach(h => {
+    h.addEventListener('click', e => {
+      if (e.target.tagName === 'A') return;
+      h.parentElement.classList.toggle('closed');
+    });
+  });
+
+  aplicar();
+</script>
+
+{% endif %}
+{% endblock %}

@@ -1,93 +1,331 @@
-# Locale Link Verifier
+# QA de Localización — sitios de dealers EN → ES
 
-A Flask-based web interface for a LangChain workflow that verifies Spanish locale navigation labels on dealer websites.
+Verifica que la versión en español de un sitio de concesionario esté bien
+migrada, comparando cada página `?locale=es_US` contra su equivalente
+`?locale=en_US`.
 
-## Overview
+Todo es determinista: reglas, glosario y aritmética. No usa ningún modelo de
+lenguaje, así que el mismo sitio da siempre el mismo reporte.
 
-This project scrapes navigation links from a dealer website, generates Spanish locale URLs, detects broken Spanish labels in localized pages, compares them to English labels, and produces a report. It can use a Gemini/Google Generative AI model for smarter broken-label detection, with a heuristic fallback when no API key is available.
+## Instalación
 
-## Features
-
-- Scrapes navigation links from a base URL using `div.header-navigation` or `<nav>`.
-- Builds Spanish locale URLs by appending `?locale=es_US` to each path.
-- Detects broken Spanish link texts in the localized pages.
-- Compares broken Spanish labels to English page labels via `?locale=en_US`.
-- Looks up expected Spanish translations from `translations.csv`.
-- Renders a summary report in a browser using Flask.
-
-## Architecture
-
-- `app.py` - Flask application and web UI.
-- `workflow.py` - Orchestrates the scan pipeline.
-- `scraper.py` - Scrapes navigation links, builds locale URLs, fetches pages, and performs broken label detection and comparison.
-- `tools/scraper_tool.py` - LangChain tool for scraping navigation links.
-- `tools/locale_tool.py` - LangChain tool for generating Spanish locale URLs.
-- `tools/comparator_tool.py` - LangChain tool for comparing broken labels against English labels and translations.
-- `agents/broken_label_detector.py` - LLM-assisted agent for detecting broken Spanish page labels, with fallback heuristic logic.
-- `chains/report_chain.py` - Generates the final report payload.
-- `templates/report.html` - HTML template for the web report.
-- `translations.csv` - English-to-Spanish translation reference.
-
-## Requirements
-
-Install the Python dependencies:
+Requiere Python 3.11 o superior.
 
 ```bash
-python -m pip install -r requirements.txt
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-## Environment
+En Git Bash el activate es `source venv/Scripts/activate`.
 
-Create a `.env` file in the project root to configure optional secrets and settings:
+## Uso
 
-```env
-SECRET_KEY=your-secret-key
-GEMINI_API_KEY=your_gemini_api_key
-# or
-GOOGLE_API_KEY=your_google_api_key
-```
-
-- `SECRET_KEY` is used by Flask for session security.
-- `GEMINI_API_KEY` or `GOOGLE_API_KEY` enables the LLM-assisted broken label detector.
-
-If no API key is present, the project uses a heuristic detector based on text patterns.
-
-## Usage
-
-1. Install dependencies.
-2. Ensure `.env` is configured if you want LLM support.
-3. Run the app:
+### Interfaz web
 
 ```bash
 python app.py
 ```
 
-4. Open the browser at `http://localhost:5000`.
-5. Enter the dealer site base URL and submit the form.
+Abre http://localhost:5000. **La interfaz está en inglés**, igual que los
+mensajes de los hallazgos y el CSV, porque el contenido que se revisa y el
+equipo que lo lee trabajan en inglés.
 
-## Behavior
+El escaneo corre en segundo plano con barra de progreso. El reporte trae
+filtros por severidad y por tipo de hallazgo, buscador de texto, páginas
+plegables y un enlace para descargar el CSV.
 
-- The app scrapes navigation links from the given base URL.
-- It then creates Spanish locale page URLs and inspects each localized page for broken labels.
-- Broken labels are compared to the matching English page text and translation lookup entries.
-- The report displays:
-  - total navigation paths
-  - affected pages
-  - broken label count
-  - broken text, English label, and expected Spanish translation
+### Línea de comandos
 
-## Notes
+```bash
+python scan.py https://midealer.com
+```
 
-- Navigation scraping prefers `div.header-navigation`, then falls back to `<nav>`.
-- Relative links are normalized and external domains are ignored.
-- Translation lookup uses `translations.csv`; missing file is handled gracefully.
+| Opción | Para qué |
+|---|---|
+| `--max-pages 5` | Limitar cuántas páginas escanear |
+| `--paths /servicio/ /ofertas/` | Revisar paths específicos en vez de la navegación |
+| `--csv reporte.csv` | Exportar a CSV para abrir en Excel |
+| `--json reporte.json` | Exportar a JSON |
+| `--unknown` | Incluir los términos que no están en el glosario (mucho ruido) |
+| `--popups` | Verificar con un navegador real que los popups abren (lento) |
+| `-v` | Ver el progreso página por página |
 
-## Troubleshooting
+Sale con código 1 si hay errores, para encadenarlo en CI.
 
-- If no navigation links are found, verify the URL and page structure.
-- If you see `ValueError` for missing API keys, add `GEMINI_API_KEY` or `GOOGLE_API_KEY` to `.env`.
-- The current locale switching approach is query-parameter based (`?locale=es_US` / `?locale=en_US`).
+**En Git Bash**, si pasás `--paths /` solo, antepone `MSYS_NO_PATHCONV=1` — si no,
+Git Bash convierte la barra en una ruta de Windows.
 
-## License
+La portada se reporta siempre como `/index.htm`, sea que llegue de la
+navegación (el logo del sitio suele apuntar a `/` a secas) o de un `--paths /`
+dado a mano — así queda con la misma pinta que el resto de las secciones del
+sitio (`/showroom/index.htm`, `/new-inventory/index.htm`...). Verificado que
+`/index.htm` resuelve igual que `/` en el CMS. Esto es propio de este QA: en
+Stare & Compare el sitio origen puede ser cualquier plataforma, así que ahí
+no se normaliza.
 
-This repository does not include a license file. Add one if you intend to share or publish the code.
+### Stare and Compare — sitio migrado contra el original
+
+```bash
+python compare.py --source oldsite.com --copy new.cms.dealer.com --paths / /service/
+```
+
+Programa **aparte**, con lógica contraria a la de `scan.py`: acá los dos textos
+deben ser **iguales**, no se traduce nada. Cualquier diferencia es sospechosa.
+
+| Opción | Para qué |
+|---|---|
+| `--source` | Dominio del sitio original, del que se copia |
+| `--copy` | Dominio del sitio migrado, normalmente el del CMS |
+| `--paths / /service/` | Los paths del sitio original (se usan también en la copia, salvo que se dé `--copy-paths`) |
+| `--paths-file paths.txt` | Un path del original por línea, para lotes grandes |
+| `--copy-paths /index.htm /service.htm` | Los paths de la copia, emparejados por posición con `--paths` — solo hace falta cuando las dos plataformas arman las rutas distinto (el live site en `/seccion/`, el CMS en `/seccion.htm`) |
+| `--copy-paths-file copia.txt` | Lo mismo que `--copy-paths`, desde un archivo, un path por línea |
+| `--links` | Verificar que los links internos de la copia resuelvan y lleven al mismo lugar que en el original (lento) |
+| `--source-dir carpeta/` | Leer el HTML del original de archivos guardados a mano en vez de pedirlo por red — ver más abajo |
+| `--csv` · `--json` | Exportar el reporte |
+
+Qué detecta:
+
+| Check | Qué encuentra |
+|---|---|
+| Referencias al sitio viejo | Links e imágenes que siguen apuntando al origen. **El bug clásico**: la página se ve perfecta hasta que apagan el sitio viejo |
+| Texto alterado | El elemento existe en los dos pero el texto cambió |
+| Contenido perdido | Está en el original y no llegó a la copia |
+| Contenido de más | Está en la copia y no en el original |
+| Diferencia de cantidad | Una sección entera que falta, aunque los hallazgos sueltos no lo dejen ver |
+| Claves, caracteres, popups | Los mismos checks de `scan.py`, que aplican igual |
+| Link roto (con `--links`) | Un link interno de la copia que no resuelve — 404 o cualquier otro error |
+| Link a otra sección (con `--links`) | El link existe y resuelve, pero su destino tiene un título muy distinto entre el original y la copia — puede estar mal cableado |
+
+#### `--links`: que los links funcionen y lleven al lugar correcto
+
+Dos preguntas distintas, cubiertas con un mismo pedido de red:
+
+1. **¿Resuelve?** Se le pide la URL de verdad al CMS y se reporta si devuelve
+   404 o cualquier otro error. Esto reemplaza a un chequeo por patrón (por
+   ejemplo, "¿termina en `.htm`?"): la convención de rutas de este CMS
+   (`/seccion/index.htm`) es justamente eso, una convención — un link puede
+   seguirla y aun así no existir, o no seguirla y funcionar igual. Pedirle la
+   URL al servidor es la única forma de saberlo con certeza.
+
+2. **¿Lleva al mismo lugar?** Cada plataforma arma sus rutas distinto, así
+   que la URL de destino casi nunca va a ser igual entre el sitio original y
+   la copia — comparar URLs no sirve. En cambio se compara el `<title>` (o el
+   `<h1>`) de la página de destino: como en un Stare & Compare el contenido
+   debe ser una copia textual, ese título debería sobrevivir casi intacto. Si
+   no se parece en nada, el link probablemente quedó apuntando a otra
+   sección. **Esto es una heurística**, no una regla exacta — un título
+   distinto también puede ser una decisión legítima del builder — así que se
+   reporta como `Question` en el bug report, no como `Critical`.
+
+El mismo link de navegación se repite en cada página comparada; los pedidos
+se cachean por URL durante toda la corrida para no pedir 8 veces el mismo
+link porque aparece en 8 páginas.
+
+No usa el glosario para juzgar traducciones — solo aprovecha sus reglas de
+caracteres para detectar mojibake introducido al copiar.
+
+#### `--source-dir`: cuando el sitio original bloquea pedidos automatizados
+
+Algunos sitios (por ejemplo, con un desafío anti-bot de Cloudflare) rechazan
+cualquier pedido que no venga de un navegador real. En ese caso `compare.py`
+no puede traer el HTML del original por su cuenta — y **no** se intenta
+sortear el bloqueo (ni con otro User-Agent, ni con Selenium/Playwright, ni
+con una VPN): sigue siendo evadir una protección anti-bot, sin importar la
+técnica.
+
+La alternativa real: **una persona pasa el desafío como cualquier
+visitante**, navegando el sitio en su propio navegador, y guarda el HTML que
+ya vio. Para eso está la extensión de Chrome en [`extension/`](extension/) —
+un botón que descarga el HTML ya cargado de la pestaña activa, con el nombre
+que le corresponde a ese path (ver `extension/README.md`).
+
+Con esos archivos guardados en una carpeta:
+
+```bash
+python compare.py --source oldsite.com --copy new.cms.dealer.com \
+  --paths /service/ /about-us/ \
+  --source-dir ./paginas-guardadas
+```
+
+`--source` sigue siendo obligatorio — identifica el dominio para los links
+"Source" del reporte y para el check de referencias al sitio viejo — pero el
+HTML del original se lee de la carpeta en vez de pedirse por red. Si falta
+el archivo de algún path, se avisa cuál en vez de fallar en silencio.
+
+### El formato de bugs del equipo
+
+Los dos programas pueden emitir los hallazgos en el formato del documento de
+proceso, para pegarlos directo en el tracker:
+
+```
+Field 1 | Field 2 | Field 3 | Field 4
+   D    | Critical|  Link   | External Link needed — "https://oldsite.com/service/"
+```
+
+| Opción | Para qué |
+|---|---|
+| `--bugs` | Imprimir los hallazgos en ese formato |
+| `--html reporte.html` | Reporte con el formato de Test & Feedback: cabecera, tabla de contenido y un bug por hallazgo |
+| `--shots` | Adjuntar al reporte una captura recortada de cada bug, con el elemento resaltado |
+| `--mobile` | Pide las páginas como un teléfono y reporta el Field 1 como `M` |
+
+**Un bug que sale en varias páginas se reporta una sola vez**, con la lista de
+paths y la nota de consultar con quien trabajó el request — que es lo que pide
+el documento de proceso. En un sitio real eso baja 62 hallazgos a 2 bugs.
+
+El mapeo de veredicto a los campos 2 y 3 está en [qa/bugreport.py](qa/bugreport.py),
+en una tabla de una línea por veredicto, fácil de corregir.
+
+#### Las capturas
+
+`--shots` abre un navegador, ubica el elemento de cada hallazgo, le dibuja un
+contorno rojo y **recorta esa región** — no fotografía la página entera. Cuando
+hay las dos versiones, captura ambas y quedan lado a lado.
+
+El recorte es por espacio: un reporte de Test & Feedback pesa ~700 KB por
+captura de página completa, y estas pesan **14 KB**.
+
+Si el elemento está oculto dentro de un menú desplegable (submenús que solo
+aparecen con hover o clic), primero se intenta destaparlo: se sube por los
+ancestros hasta el contenedor colapsado y se acciona su disparador — clic si
+usa `data-toggle`/`aria-haspopup` (Bootstrap), hover si es un menú por CSS.
+Los elementos que ni así se pueden ubicar quedan sin captura — se prefiere
+ninguna antes que una que no muestre el elemento.
+
+**Un bug agrupado en varias páginas no repite la captura en cada una.** Cada
+hallazgo se agrupa por su línea de bug (`Field 1 | Field 2 | Field 3 | Field 4`,
+igual que el resto del reporte), y dentro de esa línea el reporte muestra, por
+cada *lugar* donde se ilustró el bug: su path, sus dos enlaces (`source` y, si
+aplica, el de referencia) y sus imágenes — todo junto en una tarjeta. Por
+defecto se ilustran hasta 2 lugares por bug; el resto de las páginas afectadas
+se sigue listando aparte, en `Pages`, sin capturas repetidas.
+
+Un bug de un término de **navegación** (nav/footer) es distinto: es el mismo
+elemento de HTML repetido igual en cada página, así que dos capturas de él son
+la misma foto dos veces, no evidencia nueva. Esos bugs se limitan a 1 solo
+lugar ilustrado en vez de 2 — se detectan por la columna `context` del
+glosario (la misma que el equipo usa para categorizar cada término).
+
+Para el lado de referencia (la otra página), el texto a buscar **no** es
+siempre el mismo campo del hallazgo: para un `off_glossary`, `expected` es la
+traducción canónica del glosario — lo que *debería* decir la página revisada —
+no lo que dice de verdad la otra página. Buscar eso ahí casi siempre fallaba.
+`TermChecker.check()` ahora guarda aparte, en `meta['source_text']`, el texto
+real de la contraparte, y `screenshots.py` lo usa para localizar el elemento
+del lado de referencia.
+
+Requiere Playwright y agrega un par de minutos.
+
+### Validar el glosario
+
+```bash
+python validate_glossary.py
+```
+
+Revisa `data/` antes de escanear: claves duplicadas, traducciones faltantes,
+`policy` inválidas, mojibake dentro del propio glosario. Sale con código 1 si
+hay errores. El escaneo lo corre solo y se niega a arrancar si el glosario
+está mal.
+
+## Qué verifica
+
+| Check | Qué detecta |
+|---|---|
+| Labels rotos | Claves internas del CMS visibles (`SITEBUILDER_*`), placeholders sin resolver, `undefined`/`null` |
+| Traducción | El término español contra el glosario oficial |
+| Contenido migrado | Texto que sigue en inglés, y contenido que existe en EN pero no en ES |
+| Mayúsculas | Que el patrón de capitalización siga al de la página inglesa |
+| Caracteres | Mojibake, entidades HTML visibles, acentos perdidos |
+| Unidades | Que millas y kilómetros no cambien de unidad sin convertir el valor |
+| Duplicados | El mismo término dos veces en la página, una traducida y otra no |
+| Popups | Que los popups del inglés existan en español, y con `--popups`, que abran |
+
+Cuando una clave del CMS aparece **solo en español**, el reporte dice qué texto
+tiene la página inglesa en ese mismo elemento. Si aparece en los dos idiomas,
+baja a advertencia: el label nunca se llenó en el CMS y no es un bug de
+traducción.
+
+## Popups
+
+Un popup es invisible para los demás checks: su texto vive en atributos
+(`data-title`, `data-content`) o en un div oculto, y su ausencia no deja
+ningún hueco visible en la página.
+
+Se detectan por `data-toggle="popover"` o por `class="dialog"` con `data-el`
+o `data-href`. Un `<a class="btn">` sin ningún atributo `data-*` **no** es un
+popup y no entra al reporte.
+
+El escaneo normal compara el inventario entre idiomas. Con `--popups` además
+se abre un navegador real y se hace clic en cada uno, porque los popovers de
+Bootstrap no responden a un clic programático. Ese modo distingue si el popup
+no abre solo en español (bug de localización) o tampoco en inglés (bug del
+sitio).
+
+Requiere `pip install playwright` y `playwright install chromium`.
+
+## Los datos
+
+Tres archivos en `data/`, editables en Excel:
+
+- **`glossary.csv`** — los términos. Columnas: `english`,
+  `spanish_canonical` (la oficial), `spanish_accepted` (variantes válidas,
+  separadas por `|`), `policy`, `context`, `notes`.
+
+  `policy` puede ser `translate`, `do_not_translate` (marcas como CarFinder),
+  `pattern` (con placeholders `{n}`, `{year}`) o `pending` (sin traducción
+  todavía).
+
+- **`char_rules.csv`** — mojibake, acentos perdidos, typos. Las filas de tipo
+  `html_entity` y `unit` quedan como referencia: las cubre otro check.
+
+- **`style_rules.csv`** — reglas de estilo, como no usar artículos antes de
+  modelos de vehículos.
+
+Se leen con `utf-8-sig` porque Excel escribe BOM.
+
+## Estructura
+
+```
+app.py                 interfaz web del QA de localizacion
+scan.py                CLI del QA de localizacion  (EN -> ES, contra el glosario)
+compare.py             CLI del Stare and Compare   (original -> copia, mismo idioma)
+validate_glossary.py   validador del glosario
+qa/
+  glossary.py          carga y valida data/
+  normalize.py         normalización de texto (conserva acentos a propósito)
+  casing.py            clasificación de mayúsculas
+  fetch.py             descarga con locale
+  extract.py           extracción y emparejamiento ES↔EN
+  engine.py            orquesta los checks
+  findings.py          modelo de hallazgos
+  export.py            CSV, comun a los dos programas
+  browser.py           verificacion de popups con Playwright
+  migration.py         motor del Stare and Compare
+  checks/              los checks
+tests/
+data/
+extension/             extension de Chrome para guardar HTML a mano (--source-dir)
+```
+
+## Notas
+
+- Se espera un segundo entre peticiones para no golpear el sitio.
+- El emparejamiento ES↔EN usa cuatro pasadas: href+query exacto, solo el
+  query, orden cuando las cantidades coinciden, y texto más parecido. Los
+  sitios reales usan rutas distintas por idioma (`/new/` vs `/new-inventory/`),
+  y a veces meten la traducción dentro de la URL (`/SUV.htm` vs `/VUD.htm`).
+- Los términos que no están en el glosario se ocultan salvo `--unknown`: en una
+  página real son el 76% del reporte y casi todos son nombres de modelo,
+  direcciones y copy de marketing.
+
+## Código desconectado
+
+`qa/llm.py` y `qa/advisor.py` son una capa opcional de sugerencias con un
+modelo local (Ollama), construida y luego desconectada a pedido. Nada del flujo
+los importa; solo su propio test, `tests/test_ai_no_perjudica.py`, que verifica
+que la capa no puede alterar ni ocultar ningún hallazgo de QA.
+
+Para reconectarla harían falta dos cambios: el flag en `scan.py` y la casilla
+en `app.py` con su plantilla.

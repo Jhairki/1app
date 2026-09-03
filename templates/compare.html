@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if error %}
+  <div class="banner error"><strong>{{ error }}</strong></div>
+{% endif %}
+
+<h1>Stare &amp; Compare</h1>
+<p class="sub">
+  The migrated site against the one it was copied from. Nothing is translated
+  here, so <strong>any difference in the text is suspicious</strong>.
+</p>
+
+<div class="panel">
+  <form method="post">
+    <div class="row">
+      <div class="field">
+        <label for="source">Source site</label>
+        <input type="text" id="source" name="source" placeholder="oldsite.com" required
+               autocomplete="off" autofocus>
+        <div class="hint">The one being copied from — usually the live site.</div>
+      </div>
+      <div class="field">
+        <label for="copy_site">Migrated site</label>
+        <input type="text" id="copy_site" name="copy_site" placeholder="new.cms.dealer.com" required
+               autocomplete="off">
+        <div class="hint">The one being checked — usually the CMS domain.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="paths">Paths on the source site</label>
+        <textarea id="paths" name="paths" rows="6" required
+                  placeholder="/&#10;/service/&#10;/new-inventory/&#10;/about-us/"></textarea>
+        <div class="hint">
+          One per line. There is no navigation discovery here: the two sites
+          can have different menus, so you say which pages are equivalent.
+        </div>
+      </div>
+      <div class="field">
+        <label for="copy_paths">Paths on the migrated site <span class="faint">(optional)</span></label>
+        <textarea id="copy_paths" name="copy_paths" rows="6"
+                  placeholder="/&#10;/service.htm&#10;/new-inventory.htm&#10;/about-us.htm"></textarea>
+        <div class="hint">
+          Only needed when the platforms build URLs differently — a live site
+          in <code>/section/</code> and a CMS in <code>/section.htm</code>, for
+          example. Paired by line with the source paths, so leave blank lines
+          out and keep the same order and count. Leave empty to use the same
+          paths on both sides.
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="source_dir">Read source pages from a folder <span class="faint">(optional)</span></label>
+      <input type="text" id="source_dir" name="source_dir" autocomplete="off"
+             placeholder="C:\Users\you\Downloads\saved-pages">
+      <div class="hint">
+        For when the source site blocks automated requests (an anti-bot challenge, for
+        example). Leave this empty to fetch the source pages normally. Otherwise, browse
+        each source page yourself and save its HTML with the
+        <a href="https://github.com/Jhairki/1app/tree/main/extension" target="_blank" rel="noopener">QA
+        Page Exporter</a> extension into this folder — a path on the machine running this app.
+      </div>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:9px;font-weight:500;margin-bottom:18px">
+      <input type="checkbox" name="mobile" value="1" style="width:auto">
+      <span>Check the mobile version <span class="faint">— reports Field 1 as M</span></span>
+    </label>
+
+    <label style="display:flex;align-items:flex-start;gap:9px;font-weight:500;margin-bottom:18px">
+      <input type="checkbox" name="shots" value="1" style="width:auto;margin-top:3px">
+      <span>Attach screenshots to the bug report
+        <span class="faint">— a cropped, highlighted shot of each bug. Adds a couple of minutes.</span>
+      </span>
+    </label>
+
+    <label style="display:flex;align-items:flex-start;gap:9px;font-weight:500;margin-bottom:18px">
+      <input type="checkbox" name="links" value="1" style="width:auto;margin-top:3px">
+      <span>Check links
+        <span class="faint">— confirm each internal link on the copy resolves, and leads to the
+          same destination as on the source. Adds a request per link, cached across pages.</span>
+      </span>
+    </label>
+
+    <button type="submit">Compare</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>What gets checked</h2>
+  <div class="scroll">
+    <table>
+      <tr><th style="width:210px">Check</th><th>What it catches</th></tr>
+      <tr>
+        <td>Still points at the source</td>
+        <td>
+          Links and images on the new page that still resolve to the old domain.
+          <strong>The classic migration bug</strong> — the page looks perfect
+          while the old site is still up, and breaks the day it goes down.
+        </td>
+      </tr>
+      <tr><td>Text changed</td><td>The element exists on both sides but the wording is different</td></tr>
+      <tr><td>Content missing</td><td>It is on the source site and never made it across</td></tr>
+      <tr><td>Content not on source</td><td>It is on the migrated page and not on the original</td></tr>
+      <tr><td>Element count differs</td><td>A whole section missing, even when the individual findings do not show it</td></tr>
+      <tr><td>Broken CMS labels</td><td>Internal keys and unresolved placeholders leaking onto the page</td></tr>
+      <tr><td>Characters</td><td>Mojibake and HTML entities introduced while copying</td></tr>
+      <tr><td>Popups</td><td>Popups from the source that are not on the migrated page</td></tr>
+      <tr>
+        <td>Broken link <span class="faint">(with Check links)</span></td>
+        <td>An internal link on the copy that does not resolve — 404 or any other error</td>
+      </tr>
+      <tr>
+        <td>Link may lead elsewhere <span class="faint">(with Check links)</span></td>
+        <td>
+          The link's destination page has a very different title on the copy than on the
+          source — it may have been wired to the wrong section. This one is a heuristic
+          (title similarity, not an exact rule), so it is reported as a Question, not a
+          Critical bug.
+        </td>
+      </tr>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:16px">
+    The glossary is not used to judge translations here — only its character
+    rules, to catch encoding damage introduced during the copy.
+  </p>
+</div>
+
+{% endblock %}

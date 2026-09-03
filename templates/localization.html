@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if error %}
+  <div class="banner error"><strong>{{ error }}</strong></div>
+{% endif %}
+
+{% if glossary_counts.error %}
+  <div class="banner error">
+    <strong>The glossary has {{ glossary_counts.error }} errors.</strong>
+    Scans will not run until they are fixed.
+    <a href="{{ url_for('glossary_view') }}">See the details</a>.
+  </div>
+{% endif %}
+
+<h1>Localization QA</h1>
+<p class="sub">
+  English against Spanish on the same site. Every path is checked at
+  <span class="mono">?locale=es_US</span> against its
+  <span class="mono">?locale=en_US</span> counterpart, and every term against the glossary.
+</p>
+
+<div class="panel">
+  <form method="post">
+    <div class="field">
+      <label for="base_url">Site URL</label>
+      <input type="text" id="base_url" name="base_url" placeholder="mydealer.com" required
+             autocomplete="off" autofocus>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="max_pages">Page limit</label>
+        <input type="number" id="max_pages" name="max_pages" value="10" min="0">
+        <div class="hint">0 means no limit. Each page takes about 2 seconds.</div>
+      </div>
+      <div class="field">
+        <label for="paths">Specific paths <span class="faint">— optional</span></label>
+        <textarea id="paths" name="paths" rows="3"
+                  placeholder="/new-inventory/&#10;/service/&#10;/specials/"></textarea>
+        <div class="hint">One per line. Leave empty to take them from the homepage navigation.</div>
+      </div>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:9px;font-weight:500;margin-bottom:18px">
+      <input type="checkbox" name="mobile" value="1" style="width:auto">
+      <span>Check the mobile version <span class="faint">— reports Field 1 as M</span></span>
+    </label>
+
+    <label style="display:flex;align-items:flex-start;gap:9px;font-weight:500;margin-bottom:18px">
+      <input type="checkbox" name="shots" value="1" style="width:auto;margin-top:3px">
+      <span>Attach screenshots to the bug report
+        <span class="faint">— a cropped, highlighted shot of each bug. Adds a couple of minutes.</span>
+      </span>
+    </label>
+
+    <button type="submit">Run scan</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>What gets checked</h2>
+  <div class="scroll">
+    <table>
+      <tr><th style="width:190px">Check</th><th>What it catches</th></tr>
+      <tr>
+        <td>Broken labels</td>
+        <td>Internal CMS keys leaking onto the page, unresolved placeholders, <span class="mono">undefined</span> / <span class="mono">null</span></td>
+      </tr>
+      <tr>
+        <td>Translation</td>
+        <td>The Spanish term against the official glossary</td>
+      </tr>
+      <tr>
+        <td>Migrated content</td>
+        <td>Text still in English, and content that exists in EN but not in ES</td>
+      </tr>
+      <tr>
+        <td>Capitalization</td>
+        <td>That the casing pattern follows the English page</td>
+      </tr>
+      <tr>
+        <td>Characters</td>
+        <td>Mojibake, HTML entities showing as literal text, dropped accents</td>
+      </tr>
+      <tr>
+        <td>Units</td>
+        <td>That miles and kilometers do not swap without converting the value</td>
+      </tr>
+      <tr>
+        <td>Duplicates</td>
+        <td>The same term twice on one page, one translated and one not</td>
+      </tr>
+      <tr>
+        <td>Popups</td>
+        <td>That the English popups exist in Spanish, with their titles and content</td>
+      </tr>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:16px">
+    Glossary loaded: <strong>{{ glossary|length }}</strong> terms,
+    <strong>{{ glossary.char_rules|length }}</strong> character rules,
+    <strong>{{ glossary.pending|length }}</strong> pending translation.
+  </p>
+</div>
+
+{% endblock %}

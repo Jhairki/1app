@@ -1,0 +1,100 @@
+"""Exportar el reporte a CSV.
+
+El equipo trabaja el glosario en Excel, asi que el reporte sale en el mismo
+formato: una fila por hallazgo, con el path y la URL de cada lado para poder
+abrir la pagina y verificarlo.
+"""
+
+import csv
+import io
+
+from qa.bugreport import to_bug_fields
+
+COLUMNS = [
+    # Los cuatro campos del formato de bugs del equipo, primero, para poder
+    # pegarlos directo en el tracker
+    "field_1_device",
+    "field_2_importance",
+    "field_3_type",
+    "field_4_description",
+    "path",
+    "severity",
+    "type",
+    "found",
+    "expected",
+    "auto_fixable",
+    "fix",
+    "message",
+    "context",
+    "url_checked",
+    "url_reference",
+]
+
+SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
+
+
+def rows(result, device: str = "D"):
+    """Una fila por hallazgo, los errores primero."""
+    for page in sorted(result.pages, key=lambda p: p.path):
+        for finding in sorted(page.findings,
+                              key=lambda f: SEVERITY_ORDER[f.severity.value]):
+            yield {
+                **to_bug_fields(finding, device),
+                "path": page.path,
+                "severity": finding.severity.value,
+                "type": finding.verdict.value,
+                "found": finding.found,
+                "expected": finding.expected,
+                "auto_fixable": "yes" if finding.auto_fixable else "no",
+                "fix": finding.fixed,
+                "message": finding.message,
+                "context": finding.context,
+                # Neutro a proposito: sirve para los dos programas.
+                # Localizacion: revisada = pagina ES, referencia = pagina EN.
+                # Migracion:    revisada = sitio nuevo, referencia = sitio viejo.
+                "url_checked": getattr(page, "spanish_url", None) or getattr(page, "copy_url", ""),
+                "url_reference": getattr(page, "english_url", None) or getattr(page, "source_url", ""),
+            }
+
+
+def to_csv(result, device: str = "D") -> str:
+    """El reporte completo como texto CSV."""
+    salida = io.StringIO()
+    writer = csv.DictWriter(salida, fieldnames=COLUMNS, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows(result, device))
+    return salida.getvalue()
+
+
+def write_csv(result, path, device: str = "D") -> int:
+    """Guarda el CSV y devuelve cuantas filas escribio.
+
+    utf-8-sig: sin el BOM, Excel en Windows abre los acentos como mojibake --
+    justo el bug que esta herramienta busca.
+    """
+    contenido = to_csv(result, device)
+    with open(path, "w", encoding="utf-8-sig", newline="") as handle:
+        handle.write(contenido)
+    return contenido.count("\n") - 1
+
+
+def by_path(result) -> list[dict]:
+    """Resumen por pagina: cuantos hallazgos de cada tipo tiene cada path."""
+    resumen = []
+    for page in result.pages:
+        if page.error:
+            resumen.append({"path": page.path, "error": page.error,
+                            "errores": 0, "advertencias": 0, "tipos": {}})
+            continue
+        tipos: dict[str, int] = {}
+        for finding in page.findings:
+            tipos[finding.verdict.value] = tipos.get(finding.verdict.value, 0) + 1
+        resumen.append({
+            "path": page.path,
+            "error": "",
+            "errores": page.errors,
+            "advertencias": sum(1 for f in page.findings
+                                if f.severity.value == "warning"),
+            "tipos": dict(sorted(tipos.items(), key=lambda kv: -kv[1])),
+        })
+    return resumen
