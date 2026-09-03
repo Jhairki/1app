@@ -31,6 +31,37 @@
     }
     #status.error { color: #b00020; }
     #status.ok { color: #0a7a2f; }
+
+    h2 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #777;
+      margin: 18px 0 8px;
+    }
+    #popups { list-style: none; margin: 0; padding: 0; }
+    #popups li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-top: 1px solid #eee;
+    }
+    #popups .info { flex: 1; min-width: 0; }
+    #popups .texto {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #popups .detalle { color: #777; font-size: 11px; }
+    #popups button {
+      width: auto;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    #popups-empty, #popups-loading { color: #777; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -38,6 +69,18 @@
     la copia con <code>compare.py --source-dir</code>.</p>
   <button id="save">Guardar HTML de esta página</button>
   <div id="status"></div>
+
+  <h2>Popups en esta página</h2>
+  <p id="popups-loading">Buscando...</p>
+  <p id="popups-empty" hidden>No se encontró ninguno con las señales conocidas
+    (<code>data-toggle</code> popover/tooltip/modal, o <code>class="dialog"</code>
+    con <code>data-el</code>/<code>data-href</code>).</p>
+  <ul id="popups"></ul>
+  <p class="hint" style="font-size:11px;color:#999;margin-top:8px">
+    Esto solo avisa dónde probar a mano — no confirma que abran. "Ubicar"
+    hace scroll y resalta el disparador en la página.
+  </p>
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -26,6 +26,21 @@ puede pedir en vivo sin problema.
 4. Repetí para cada página de la lista, y mové todos los `.html` descargados
    a una misma carpeta.
 
+## Popups en la página
+
+Al abrir el popup, la extensión también busca en la página los mismos
+disparadores de popup que reconoce el resto de la herramienta
+(`data-toggle="popover"/"tooltip"/"modal"`, o `class="dialog"` con
+`data-el`/`data-href`) y los lista, con una sugerencia de cómo probarlos
+(hover o click).
+
+**Esto solo avisa dónde probar a mano — no confirma que abran.** No hay
+forma automática de verificarlo aquí: eso necesitaría un navegador
+automatizado pegándole al sitio bloqueado, que es exactamente lo que no se
+puede hacer. Click en "Ubicar" hace scroll hasta el disparador y lo resalta
+en rojo por un momento, para encontrarlo rápido en la página y probarlo con
+tu propio mouse.
+
 ## Usar los archivos guardados
 
 ```bash
