@@ -55,35 +55,105 @@ def _visible(loc) -> bool:
         return False
 
 
+def _existe(loc) -> bool:
+    """Esta en el DOM, este visible o no. Sirve para saber si vale la pena
+    intentar destaparlo antes de darnos por vencidos."""
+    try:
+        return loc.count() > 0
+    except Exception:
+        return False
+
+
+# Destapa el elemento si esta oculto dentro de un menu desplegable colapsado.
+#
+# Sube por los ancestros buscando el primero con display:none (el panel del
+# menu -- un UL.dropdown-menu, un mega-menu, etc). El disparador de ese panel
+# es el primer <a>/<button> del LI padre, o el hermano anterior. Si el
+# disparador usa data-toggle o aria-haspopup (Bootstrap), se hace CLIC: ese
+# patron no reacciona a un hover sintetico. Si no tiene ninguno de los dos, se
+# asume que es un menu por CSS puro y se dispara mouseenter/mouseover.
+#
+# Encontrado en un sitio real: un link de "Service & Parts" y un heading de un
+# mega-menu de "Pre-Owned Inventory" quedaban sin captura porque su contenedor
+# tenia display:none hasta el hover/clic, y is_visible() los descartaba antes
+# de intentar nada.
+DESTAPAR_MENU = """(el) => {
+  let n = el;
+  let actuo = false;
+  for (let i = 0; i < 6 && n; i++) {
+    const cs = getComputedStyle(n);
+    const oculto = cs.display === 'none' || cs.visibility === 'hidden'
+                  || parseFloat(cs.opacity) === 0;
+    if (oculto) {
+      const padre = n.parentElement;
+      let disparador = padre
+        ? padre.querySelector(':scope > a[data-toggle], :scope > a[aria-haspopup],'
+                              + ' :scope > button[data-toggle], :scope > a, :scope > button')
+        : null;
+      if (!disparador && n.previousElementSibling) {
+        disparador = n.previousElementSibling;
+      }
+      if (disparador) {
+        if (disparador.getAttribute('data-toggle') || disparador.getAttribute('aria-haspopup')) {
+          disparador.click();
+        } else {
+          disparador.dispatchEvent(new MouseEvent('mouseenter', {bubbles: true}));
+          disparador.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
+        }
+        actuo = true;
+      }
+    }
+    n = n.parentElement;
+  }
+  return actuo;
+}"""
+
+
+def _destapar_si_hace_falta(page, loc) -> bool:
+    """Si el candidato esta oculto por un menu, intenta abrirlo. Devuelve si
+    quedo visible al final, se haya intentado algo o no."""
+    if _visible(loc):
+        return True
+    try:
+        if not loc.first.evaluate(DESTAPAR_MENU):
+            return False
+    except Exception:
+        return False
+    page.wait_for_timeout(300)
+    return _visible(loc)
+
+
 def find_element(page, finding, texto: str):
     """Busca el elemento del hallazgo. Devuelve un Locator o None.
 
     De lo mas preciso a lo mas general: la URL exacta que quedo apuntando al
-    sitio viejo, el href del link, y por ultimo el texto.
+    sitio viejo, el href del link, y por ultimo el texto. Un candidato que
+    existe pero esta oculto se intenta destapar (menus desplegables) antes de
+    descartarlo.
     """
     # 1. Fuga al sitio viejo: la URL esta en meta y es unica
     url = (finding.meta or {}).get("url")
     if url:
         for sel in (f'[href="{url}"]', f'[src="{url}"]', f'[data-href="{url}"]'):
             loc = page.locator(sel)
-            if _visible(loc):
+            if _existe(loc) and _destapar_si_hace_falta(page, loc):
                 return loc.first
 
     # 2. Link: el href identifica el elemento sin ambiguedad
     href = _href_del_contexto(finding.context)
     if href and href not in ("", "#"):
         loc = page.locator(f'a[href="{href}"], a[href$="{href}"]')
-        if _visible(loc):
+        if _existe(loc) and _destapar_si_hace_falta(page, loc):
             return loc.first
 
     # 3. El texto, que es lo que funciona para encabezados y botones
     if texto and len(texto.strip()) > 2:
         try:
             loc = page.get_by_text(texto.strip(), exact=True)
-            if _visible(loc):
+            if _existe(loc) and _destapar_si_hace_falta(page, loc):
                 return loc.first
             loc = page.get_by_text(texto.strip()[:60], exact=False)
-            if _visible(loc):
+            if _existe(loc) and _destapar_si_hace_falta(page, loc):
                 return loc.first
         except Exception:
             pass
