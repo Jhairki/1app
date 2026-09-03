@@ -31,10 +31,12 @@ from qa.extract import (POPUP_KINDS, extract_units, find_navigation_paths,
                         pair_units, visible_text)
 from qa.fetch import (
     ENGLISH,
+    HOME_PATH,
     SPANISH,
     fetch_html,
     make_session,
     normalize_base_url,
+    normalize_home_path,
     polite_pause,
     with_locale,
 )
@@ -323,8 +325,20 @@ def scan_site(base_url: str, paths=None, glossary: Glossary = None,
                 "(looked for div.header-navigation, then <nav>)."
             )
             return result
-        if "/" not in paths:
-            paths.insert(0, "/")
+        if "/" not in paths and HOME_PATH not in paths:
+            paths.insert(0, HOME_PATH)
+
+    # La portada se referencia como /index.htm en todo el reporte, venga de
+    # la navegacion (el logo suele apuntar a "/") o de paths dados a mano.
+    # Ambos lados de una pagina de localizacion son el MISMO sitio -- solo
+    # cambia ?locale= -- asi que la convencion de URLs es la misma en los dos.
+    vistos: set[str] = set()
+    unicos: list[str] = []
+    for p in (normalize_home_path(p) for p in paths):
+        if p not in vistos:
+            vistos.add(p)
+            unicos.append(p)
+    paths = unicos
 
     if max_pages:
         paths = paths[:max_pages]

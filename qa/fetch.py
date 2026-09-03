@@ -15,6 +15,18 @@ logger = logging.getLogger(__name__)
 SPANISH = "es_US"
 ENGLISH = "en_US"
 
+# En este CMS toda seccion se referencia como carpeta/index.htm
+# (/showroom/index.htm, /new-inventory/index.htm...). El link del logo del
+# sitio apunta a "/" a secas, asi que sin esto la portada quedaba con una
+# pinta distinta al resto de las paginas en el reporte. Verificado que
+# /index.htm resuelve igual que "/" en el CMS.
+HOME_PATH = "/index.htm"
+
+
+def normalize_home_path(path: str) -> str:
+    """La portada como '/index.htm', igual que las demas secciones del sitio."""
+    return HOME_PATH if path in ("", "/") else path
+
 REQUEST_DELAY_SECONDS = 1.0
 REQUEST_TIMEOUT_SECONDS = 30
 USER_AGENT = "LocaleQABot/2.0"
